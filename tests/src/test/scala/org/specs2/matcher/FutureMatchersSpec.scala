@@ -74,7 +74,7 @@ class FutureMatchersSpec extends Specification with ResultMatchers with Retries 
       }
     }
 
-    ClassRunner.report(env)(thrown).runOption.get.failures === 1
+    ClassRunner.report(env)(thrown).runOption(env.specs2ExecutionEnv).get.failures === 1
   }
 
   def e3 = {

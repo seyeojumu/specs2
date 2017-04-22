@@ -1,7 +1,7 @@
 package org.specs2
 package reporter
 
-import examples.{HelloWorldUnitSpec, HelloWorldSpec}
+import examples.{HelloWorldSpec, HelloWorldUnitSpec}
 import mock._
 import matcher._
 import main.Arguments
@@ -15,8 +15,8 @@ import control.runAction
 class SbtPrinterSpec extends Spec { def is = s2"""
                                                                                                                         
  A SbtPrinter should
-   print the specification title if defined                                   ${printer().e1}
-   print HelloWorldSpec ok                                                    ${printer2().e1}
+   print the specification title if defined      ${printer2().e1}
+   print HelloWorldSpec ok                       $${printer2().e2}
 
  Sbt event must be fired when a specification is being executed with the SbtPrinter
    TestEvent: succeed                            ${printer().e2}
@@ -26,7 +26,7 @@ class SbtPrinterSpec extends Spec { def is = s2"""
 """
   val factory = fragmentFactory; import factory._
 
-  case class printer() extends Mockito { outer =>
+  case class printer1() extends Mockito { outer =>
     val logger =  mock[Logger]
     val handler = mock[EventHandler]
 
@@ -39,39 +39,23 @@ class SbtPrinterSpec extends Spec { def is = s2"""
     }
 
     def e1 = {
-      val env = Env()
-      try runAction(printer.print(env)(SpecStructure.create(SpecHeader(classOf[HelloWorldSpec]), Fragments(text("\ntitle"), text("\ntext")))))
-      finally env.shutdown
-      there was one(logger).info(beMatching("HelloWorldSpec\ntitle\ntext"))
-    }
-
-    def e2 = {
-      executeAndPrintHelloWorldUnitSpec(Env())
+      executeAndPrintHelloWorldUnitSpec
       there was atLeastOne(handler).handle(eventWithStatus(Status.Success))
     }
 
-    def e3 = {
-      executeAndPrintHelloWorldUnitSpec(Env())
+    def e2 = {
+      executeAndPrintHelloWorldUnitSpec
       there was atLeastOne(handler).handle(eventWithDurationGreaterThanOrEqualTo(0))
     }
 
-    def e4 = {
-      executeAndPrintHelloWorldUnitSpec(Env())
+    def e3 = {
+      executeAndPrintHelloWorldUnitSpec
       there was atLeastOne(handler).handle(eventWithNameMatching("HW::The 'Hello world' string should::contain 11 characters"))
     }
 
-    def eventWithStatus(s: Status): Matcher[Event] =
-      beTypedEqualTo(s) ^^ ((_: Event).status())
-
-    def eventWithDurationGreaterThanOrEqualTo(d: Long): Matcher[Event] =
-      beGreaterThanOrEqualTo(d) ^^ ((_: Event).duration())
-
-    def eventWithNameMatching(n: String): Matcher[Event] =
-      beLike[Selector] { case ts: TestSelector => ts.testName must beMatching(n) } ^^ ((_: Event).selector())
-
-    def executeAndPrintHelloWorldUnitSpec(env: Env) = {
-      val executed = DefaultExecutor.executeSpec((new HelloWorldUnitSpec).specificationStructure(env), env)
-      runAction(printer.print(env)(executed))
+    def executeAndPrintHelloWorldUnitSpec = {
+      val executed = DefaultExecutor.executeSpecWithoutShutdown((new HelloWorldUnitSpec).is.fragments, env)
+      runAction(printer.print(env)(executed))(env.specs2ExecutionEnv)
     }
 
   }
@@ -79,8 +63,12 @@ class SbtPrinterSpec extends Spec { def is = s2"""
   case class printer2() extends Mockito { outer =>
 
     def e1 = {
-      val hwSpec: org.specs2.Specification = new examples.HelloWorldSpec
-      val executed = DefaultExecutor.executeSpec(hwSpec.is, Env())
+      runAction(printer.printSpecification(env)(new HelloWorldSpec { override def is = "title".title ^ "\ntext" }))(env.specs2ExecutionEnv)
+      eventually(there was one(logger).info(beMatching(".*title.*")))
+    }
+
+    def e2 = {
+      val executed = DefaultExecutor.executeSpecWithoutShutdown((new HelloWorldSpec).is, Env())
 
       print(executed).replaceAll("""(\d+ seconds?, )?\d+ ms""", "0 ms").replaceAll(" ", "_") ===
       """|HelloWorldSpec
@@ -99,19 +87,13 @@ class SbtPrinterSpec extends Spec { def is = s2"""
     }
 
     def print(spec: SpecStructure) = {
-      runAction(printer.print(Env(arguments = Arguments("nocolor")))(spec))
+      runAction(printer.print(Env(arguments = Arguments("nocolor")))(spec))(env.specs2ExecutionEnv)
       stringLogger.flush()
       stringLogger.messages.mkString("\n")
     }
-    val handler = mock[EventHandler]
 
-    val printer = new SbtPrinter {
-      lazy val loggers: Array[Logger] = Array(stringLogger)
-      lazy val events = new SbtEvents {
-        lazy val handler = outer.handler
-        lazy val taskDef = new TaskDef("", Fingerprints.fp1, true, Array())
-      }
-    }
+    val handler = mock[EventHandler]
+    val logger = mock[Logger]
 
     val stringLogger = new Logger with StringOutput {
       def ansiCodesSupported = false
@@ -122,6 +104,23 @@ class SbtPrinterSpec extends Spec { def is = s2"""
       def info(msg: String)  { append(msg) }
     }
 
+    val printer = new SbtPrinter {
+      lazy val loggers: Array[Logger] = Array(logger, stringLogger)
+      lazy val events = new SbtEvents {
+        lazy val handler = outer.handler
+        lazy val taskDef = new TaskDef("", Fingerprints.fp1, true, Array())
+      }
+    }
+
   }
+
+  def eventWithStatus(s: Status): Matcher[Event] =
+    beTypedEqualTo(s) ^^ ((_: Event).status())
+
+  def eventWithDurationGreaterThanOrEqualTo(d: Long): Matcher[Event] =
+    beGreaterThanOrEqualTo(d) ^^ ((_: Event).duration())
+
+  def eventWithNameMatching(n: String): Matcher[Event] =
+    beLike[Selector] { case ts: TestSelector => ts.testName must beMatching(n) } ^^ ((_: Event).selector())
 
 }

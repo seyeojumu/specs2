@@ -11,9 +11,10 @@ import main.Arguments
 import concurrent.ExecutionEnv
 import specification.core._
 import specification.process.DefaultExecutor
+import control._
 import control.producer._
+import fp.syntax._
 import ResultMatchers._
-
 import scala.concurrent._
 
 class ExecutorSpec extends script.Specification with Groups with ThrownExpectations { def is = section("travis") ^ s2"""
@@ -22,6 +23,7 @@ class ExecutorSpec extends script.Specification with Groups with ThrownExpectati
  =====
   + by step
   + stop on failed specified on a step
+  + stop on error specified on a step
   + stop on skip specified in arguments
   + skipAll from arguments
 
@@ -74,6 +76,20 @@ ${step(env.shutdown)}
     }
 
     eg := {
+      val tf = env.arguments.execute.timeFactor
+
+      val fragments = Seq(
+        example("slow", slow(tf)),
+        example("medium", mediumError(tf)),
+        step(step1).stopOnError,
+        example("fast", fast(tf)))
+
+      execute(fragments, env) must contain(beSkipped[Result])
+
+      messages.toList must_== Seq("medium", "slow", "step")
+    }
+
+    eg := { env: Env =>
       val tf = env.arguments.execute.timeFactor
 
       val fragments = Seq(
@@ -165,7 +181,7 @@ ${step(env.shutdown)}
     val fragments = Seq(example("very slow", verySlow))
     val env1 = env.setTimeout(100.millis * timeFactor.toLong)
 
-    execute(fragments, env1) must contain(beSkipped[Result]("timed out after \\["+100*timeFactor+" milliseconds\\]"))
+    execute(fragments, env1) must contain(beSkipped[Result]("timed out after "+100*timeFactor+" milliseconds"))
   }
 
   def userEnv = {
@@ -183,7 +199,8 @@ ${step(env.shutdown)}
   val factory = fragmentFactory
 
   def execute(fragments: Seq[Fragment], env: Env): List[Result] =
-    DefaultExecutor.execute1(env)(Fragments(fragments:_*).contents).runList.runOption.toList.flatten.map(_.executionResult)
+    DefaultExecutor.execute1(env)(Fragments(fragments:_*).contents).runList.
+      runOption(env.executionEnv).toList.flatten.traverse(_.executionResult).run(env.executionEnv)
 
   trait results {
     val messages = new ListBuffer[String]
@@ -195,6 +212,7 @@ ${step(env.shutdown)}
     def medium(timeFactor: Int)       = { Thread.sleep(10 * timeFactor.toLong);  messages.append("medium"); success }
     def ex(s: String)                 = { messages.append(s); success }
     def mediumFail(timeFactor: Int)   = { Thread.sleep(10 * timeFactor.toLong);  messages.append("medium"); failure }
+    def mediumError(timeFactor: Int)  = { Thread.sleep(10 * timeFactor.toLong);  messages.append("medium"); anError }
     def mediumSkipped(timeFactor: Int)= { Thread.sleep(10 * timeFactor.toLong);  messages.append("medium"); skipped }
     def slow(timeFactor: Int)         = { Thread.sleep(400 * timeFactor.toLong); messages.append("slow");   success }
     def verySlow(timeFactor: Int)     = { Thread.sleep(600 * timeFactor.toLong); messages.append("very slow"); success }
