@@ -113,8 +113,7 @@ object reporterSpecSupport extends MustMatchers with StandardMatchResults with S
   def ex3(logger: LineLogger) = { logger.infoLog("e3\n "); ok }
 
   def reported(env: Env, logger: LineLogger = NoLineLogger, printers: List[Printer] = List(TextPrinter)) =
-    try reporter.report(env, printers)(spec(logger)).runOption(env.executionEnv)
-    finally env.shutdown
+    reporter.report(env, printers)(spec(logger)).runOption(env.specs2ExecutionEnv)
 
   def indexOf(messages: Seq[String])(f: String => Boolean): Int =
     messages.zipWithIndex.find { case (s, i) => f(s)}.fold(-1)(_._2)

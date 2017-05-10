@@ -56,7 +56,8 @@ ${step(env.shutdown)}
         step(step1),
         example("fast", fast(tf)))
 
-      execute(fragments, env) must not(contain(beSkipped[Result]))
+      try execute(fragments, env) must not(contain(beSkipped[Result]))
+      finally env.shutdown
 
       messages.toList must_== Seq("medium", "slow", "step", "fast")
     }
@@ -70,7 +71,8 @@ ${step(env.shutdown)}
         step(step1).stopOnFail,
         example("fast", fast(tf)))
 
-      execute(fragments, env) must contain(beSkipped[Result])
+      try execute(fragments, env) must contain(beSkipped[Result])
+      finally env.shutdown
 
       messages.toList must_== Seq("medium", "slow", "step")
     }
@@ -84,7 +86,8 @@ ${step(env.shutdown)}
         step(step1).stopOnError,
         example("fast", fast(tf)))
 
-      execute(fragments, env) must contain(beSkipped[Result])
+      try execute(fragments, env) must contain(beSkipped[Result])
+      finally env.shutdown
 
       messages.toList must_== Seq("medium", "slow", "step")
     }
@@ -110,7 +113,8 @@ ${step(env.shutdown)}
         example("ex1", fast(tf)),
         example("ex2", fast(tf)))
 
-      execute(fragments, env.setArguments(Arguments("skipAll"))) must contain(beSkipped[Result])
+      try execute(fragments, env.setArguments(Arguments("skipAll"))) must contain(beSkipped[Result])
+      finally env.shutdown
 
       messages.toList must beEmpty
     }
@@ -128,7 +132,8 @@ ${step(env.shutdown)}
         step(step1),
         example("fast", fast(tf)))
 
-      execute(fragments, env.setArguments(Arguments("sequential"))) must not(contain(beSkipped[Result]))
+      try execute(fragments, env.setArguments(Arguments("sequential"))) must not(contain(beSkipped[Result]))
+      finally env.shutdown
 
       messages.toList must_== Seq("slow", "medium", "step", "fast")
     }
@@ -142,7 +147,8 @@ ${step(env.shutdown)}
         step(step1),
         example("fast", fast(tf)))
 
-      execute(fragments, env.setArguments(Arguments("sequential")))
+      try execute(fragments, env.setArguments(Arguments("sequential")))
+      finally env.shutdown
 
       messages.toList must_== Seq("slow", "medium", "step", "fast")
     }
@@ -154,7 +160,8 @@ ${step(env.shutdown)}
         step(fatalStep),
         example("fast2", ok("ok2")))
 
-      execute(fragments, env)
+      try execute(fragments, env)
+      finally env.shutdown
 
       messages.toList must_== Seq("ok1", "fatal")
     }
@@ -165,10 +172,12 @@ ${step(env.shutdown)}
         example("e1", ko("ko1")),
         example("e2", ok("ok2")))
 
-      val env1 = env.setArguments(Arguments.split("sequential stopOnFail"))
-      val results = execute(fragments, env1).map(_.status)
+      try {
+        val env1 = env.setArguments(Arguments.split("sequential stopOnFail"))
+        val results = execute(fragments, env1).map(_.status)
 
-      results must contain("x", "o")
+        results must contain("x", "o")
+      } finally env.shutdown
     }
   }
 
@@ -181,7 +190,8 @@ ${step(env.shutdown)}
     val fragments = Seq(example("very slow", verySlow))
     val env1 = env.setTimeout(100.millis * timeFactor.toLong)
 
-    execute(fragments, env1) must contain(beSkipped[Result]("timed out after "+100*timeFactor+" milliseconds"))
+    try execute(fragments, env1) must contain(beSkipped[Result]("timed out after "+100*timeFactor+" milliseconds"))
+    finally env.shutdown
   }
 
   def userEnv = {
@@ -199,7 +209,7 @@ ${step(env.shutdown)}
   val factory = fragmentFactory
 
   def execute(fragments: Seq[Fragment], env: Env): List[Result] =
-    DefaultExecutor.execute1(env)(Fragments(fragments:_*).contents).runList.
+    DefaultExecutor.execute(env)(Fragments(fragments:_*).contents).runList.
       runOption(env.executionEnv).toList.flatten.traverse(_.executionResult).run(env.executionEnv)
 
   trait results {

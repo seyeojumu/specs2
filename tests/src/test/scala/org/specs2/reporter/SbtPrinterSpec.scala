@@ -13,7 +13,7 @@ import specification.process.DefaultExecutor
 import control.runAction
 
 class SbtPrinterSpec extends Spec { def is = s2"""
-                                                                                                                        
+
  A SbtPrinter should
    print the specification title if defined      ${printer2().e1}
    print HelloWorldSpec ok                       $${printer2().e2}
@@ -54,7 +54,7 @@ class SbtPrinterSpec extends Spec { def is = s2"""
     }
 
     def executeAndPrintHelloWorldUnitSpec = {
-      val executed = DefaultExecutor.executeSpecWithoutShutdown((new HelloWorldUnitSpec).is.fragments, env)
+      val executed = DefaultExecutor.executeSpec((new HelloWorldUnitSpec).is.fragments, env)
       runAction(printer.print(env)(executed))(env.specs2ExecutionEnv)
     }
 
@@ -68,7 +68,7 @@ class SbtPrinterSpec extends Spec { def is = s2"""
     }
 
     def e2 = {
-      val executed = DefaultExecutor.executeSpecWithoutShutdown((new HelloWorldSpec).is, Env())
+      val executed = DefaultExecutor.executeSpec((new HelloWorldSpec).is, Env())
 
       print(executed).replaceAll("""(\d+ seconds?, )?\d+ ms""", "0 ms").replaceAll(" ", "_") ===
       """|HelloWorldSpec

@@ -33,7 +33,10 @@ class JUnitReporterSpec extends Specification with Mockito {  def is = s2"""
    1 pending example, a test ignored must be reported                                                 ${notified().e7}
    1 failing example with be_==, a ComparisonFailure message must be reported                         ${notified().e8}
    steps must be correctly sequenced with examples                                                    ${notified().e9}
+  ${step(env.shutdown)}
                                                                                                       """
+
+  lazy val env = Env()
 
   case class notified() extends WithNotifier with ReporterExamples {
     def desc(s: String) = =~(s) ^^ ((_:Description).getDisplayName)
