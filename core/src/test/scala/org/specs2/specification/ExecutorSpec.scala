@@ -50,7 +50,7 @@ ${step(env.shutdown)}
     eg := {
       val tf = env.arguments.execute.timeFactor
 
-      val fragments = Seq(
+      val fragments = Fragments(
         example("slow", slow(tf)),
         example("medium", medium(tf)),
         step(step1),
@@ -65,7 +65,7 @@ ${step(env.shutdown)}
     eg := {
       val tf = env.arguments.execute.timeFactor
 
-      val fragments = Seq(
+      val fragments = Fragments(
         example("slow", slow(tf)),
         example("medium", mediumFail(tf)),
         step(step1).stopOnFail,
@@ -80,7 +80,7 @@ ${step(env.shutdown)}
     eg := {
       val tf = env.arguments.execute.timeFactor
 
-      val fragments = Seq(
+      val fragments = Fragments(
         example("slow", slow(tf)),
         example("medium", mediumError(tf)),
         step(step1).stopOnError,
@@ -95,7 +95,7 @@ ${step(env.shutdown)}
     eg := { env: Env =>
       val tf = env.arguments.execute.timeFactor
 
-      val fragments = Seq(
+      val fragments = Fragments(
         example("slow", slow(tf)),
         example("medium", mediumSkipped(tf)),
         step(step1),
@@ -109,7 +109,7 @@ ${step(env.shutdown)}
     eg := {
       val tf = env.arguments.execute.timeFactor
 
-      val fragments = Seq(
+      val fragments = Fragments(
         example("ex1", fast(tf)),
         example("ex2", fast(tf)))
 
@@ -126,7 +126,7 @@ ${step(env.shutdown)}
     eg := {
       val tf = env.arguments.execute.timeFactor
 
-      val fragments = Seq(
+      val fragments = Fragments(
         example("slow", slow(tf)),
         example("medium", medium(tf)),
         step(step1),
@@ -141,7 +141,7 @@ ${step(env.shutdown)}
     eg := {
       val tf = env.arguments.execute.timeFactor
 
-      val fragments = Seq(
+      val fragments = Fragments(
         example("slow", slow(tf)),
         example("medium", medium(tf)),
         step(step1),
@@ -155,7 +155,7 @@ ${step(env.shutdown)}
 
     eg := {
 
-      val fragments = Seq(
+      val fragments = Fragments(
         example("fast1", ok("ok1")),
         step(fatalStep),
         example("fast2", ok("ok2")))
@@ -168,7 +168,7 @@ ${step(env.shutdown)}
 
     eg := {
 
-      val fragments = Seq(
+      val fragments = Fragments(
         example("e1", ko("ko1")),
         example("e2", ok("ok2")))
 
@@ -187,7 +187,7 @@ ${step(env.shutdown)}
     val messages = new ListBuffer[String]
     def verySlow = { Thread.sleep(600 * timeFactor.toLong); messages.append("very slow"); success }
 
-    val fragments = Seq(example("very slow", verySlow))
+    val fragments = Fragments(example("very slow", verySlow))
     val env1 = env.setTimeout(100.millis * timeFactor.toLong)
 
     try execute(fragments, env1) must contain(beSkipped[Result]("timed out after "+100*timeFactor+" milliseconds"))
@@ -202,14 +202,14 @@ ${step(env.shutdown)}
         }
       }
     val e = Env()
-    try execute(fragments.fragments, e) must contain(beSuccessful[Result]).forall
+    try execute(fragments, e) must contain(beSuccessful[Result]).forall
     finally e.shutdown
   }
 
   val factory = fragmentFactory
 
-  def execute(fragments: Seq[Fragment], env: Env): List[Result] =
-    DefaultExecutor.execute(env)(Fragments(fragments:_*).contents).runList.
+  def execute(fragments: Fragments, env: Env): List[Result] =
+    DefaultExecutor.execute(env)(fragments.contents).runList.
       runOption(env.executionEnv).toList.flatten.traverse(_.executionResult).run(env.executionEnv)
 
   trait results {
