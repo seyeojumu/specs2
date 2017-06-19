@@ -9,6 +9,7 @@ import execute.{Pending, Skipped}
 import reflect.Classes
 import specification.create.FragmentsFactory
 import specification.core._
+import ExecuteActions._
 
 /**
  * Creation of fragments in a mutable specification
@@ -101,7 +102,7 @@ trait MutableFragmentBuilder extends FragmentBuilder
 
           val previousStepExecutions = previousSteps.collect {
             case f if Fragment.isStep(f) && f.execution.isolable => f.execution
-          }.runList.runOption(env.executionEnv).getOrElse(Nil)
+          }.runList.run(env.executionEnv)
 
           val isolatedExecution: Execution = pathFragments.fragments.map(_.lastOption.map(_.execution).
             getOrElse(Execution.executed(Pending("isolation mode failure - could not find an isolated fragment to execute")))).

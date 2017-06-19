@@ -11,9 +11,11 @@ import specification.core._
 
 import scala.math._
 import control._
-import org.specs2.concurrent.ExecutionEnv
 import producer._
 import transducers._
+import ExecuteActions._
+import Levels._
+import org.specs2.concurrent.ExecutionEnv
 
 /**
  * Compute the "level" of each fragment to be able to represent the whole specification
@@ -68,30 +70,25 @@ trait Levels {
     }.map(_.map(_._1))
   }
 
+}
+
+object Levels extends Levels {
+
   def treeLoc(fs: Fragments)(ee: ExecutionEnv): Option[TreeLoc[Fragment]] =
     treeLocMap(fs)(identityMapper)(ee)
 
-  def levels(fs: Fragments)(ee: ExecutionEnv): List[Int] =
-    fs.contents.pipe(levelsProcess).runList.run(ee).map(_._2).toList
-
-  def levels(f: Fragment)(ee: ExecutionEnv): List[Int] =
-    levels(Fragments(f))(ee)
-
-  def levels(structure: SpecStructure)(ee: ExecutionEnv): List[Int] =
-    levels(structure.fragments)(ee)
-
   def treeLocMap(fs: Fragments)(mapper: Mapper)(ee: ExecutionEnv): Option[TreeLoc[Fragment]] =
-    fs.contents.pipe(levelsProcess).pipe(levelsToTreeLoc(mapper)).runList.run(ee).lastOption
+    fs.contents.pipe(levelsProcess).pipe(levelsToTreeLoc(mapper)).runLast.runOption(ee).flatten
 
   def tree(fs: Fragments)(ee: ExecutionEnv): Option[Tree[Fragment]] = treeLoc(fs)(ee).map(_.toTree)
   def treeMap(fs: Fragments)(mapper: Mapper)(ee: ExecutionEnv): Option[Tree[Fragment]] = treeLocMap(fs)(mapper)(ee).map(_.toTree)
   def treeMap(structure: SpecStructure)(mapper: Mapper)(ee: ExecutionEnv): Option[Tree[Fragment]] = treeMap(structure.fragments)(mapper)(ee)
 
+
   type Mapper = Fragment => Option[Fragment]
   val identityMapper: Mapper = (f: Fragment) => Some(f)
-}
 
-object Levels extends Levels
+}
 
 case class Level(start: Boolean = false, incrementNext: Boolean = false, l: Int = 0)
 

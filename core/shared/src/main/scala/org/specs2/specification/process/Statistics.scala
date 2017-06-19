@@ -9,6 +9,7 @@ import control._
 import org.specs2.concurrent.ExecutionEnv
 import origami._
 import producer._
+import ExecuteActions._
 
 /**
  * Compute the statistics for executed fragments

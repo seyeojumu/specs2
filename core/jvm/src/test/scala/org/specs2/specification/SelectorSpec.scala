@@ -8,6 +8,7 @@ import matcher._
 import control._
 import main.Arguments
 import org.specs2.concurrent.ExecutionEnv
+import ExecuteActions._
 
 class SelectorSpec(ee: ExecutionEnv) extends script.Specification with Groups with ResultMatchers { def is = s2"""
 

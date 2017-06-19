@@ -8,6 +8,7 @@ import control._
 import producer._
 import Producer._
 import org.specs2.concurrent.ExecutionEnv
+import ExecuteActions._
 
 /**
  * Fragments of a specification
@@ -64,7 +65,7 @@ case class Fragments(contents: AsyncStream[Fragment]) {
 
   /** run the process to get all fragments as a list */
   def fragmentsList(ee: ExecutionEnv): List[Fragment] =
-    ProducerOps(contents).runList.runOption(ee).getOrElse(Nil)
+    ProducerOps(contents).runList.run(ee)
 
   /** run the process to filter all texts */
   def texts = filter(isText).fragments

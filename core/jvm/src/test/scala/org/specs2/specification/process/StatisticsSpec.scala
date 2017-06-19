@@ -6,6 +6,7 @@ import Statistics._
 import execute._
 import org.specs2.concurrent.ExecutionEnv
 import specification.core._
+import org.specs2.control.ExecuteActions._
 
 class StatisticsSpec(ee: ExecutionEnv) extends Specification { def is = s2"""
 

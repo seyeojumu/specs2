@@ -7,6 +7,7 @@ import org.specs2.specification.core.{Env, SpecificationStructure}
 import org.specs2.specification.process.DefaultExecutor
 import _root_.org.specs2.mutable.{Specification => Spec}
 import fp.syntax._
+import org.specs2.control.ExecuteActions._
 
 class BeforeAfterAroundSpec extends Specification with Grouped { def is = s2"""
 

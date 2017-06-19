@@ -12,6 +12,7 @@ import specification.core._
 import specification.process._
 import OperationMatchers._
 import org.specs2.control.origami.Folds
+import org.specs2.control.ExecuteActions._
 
 class ReporterSpec(env: Env) extends Specification with ThrownExpectations { def is = s2"""
 

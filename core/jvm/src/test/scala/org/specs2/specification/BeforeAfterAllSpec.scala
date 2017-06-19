@@ -7,6 +7,7 @@ import org.specs2.reporter.LineLogger._
 import org.specs2.specification.core.{SpecificationStructure, Env}
 import runner._
 import scala.collection.mutable.ArrayBuffer
+import org.specs2.control.ExecuteActions._
 
 class BeforeAfterAllSpec extends Specification { def is = s2"""
 

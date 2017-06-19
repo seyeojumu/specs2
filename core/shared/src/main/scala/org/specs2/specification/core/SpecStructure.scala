@@ -10,6 +10,7 @@ import control._
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.fp.syntax._
 import process._
+import ExecuteActions._
 
 /**
  * Structure of a Specification:
@@ -100,7 +101,7 @@ object SpecStructure {
 
   /** return true if s1 depends on s2, i.e, s1 has a link to s2 */
   def dependsOn(ee: ExecutionEnv) = (s1: SpecStructure, s2: SpecStructure) => {
-    val s1Links = s1.fragments.fragments.runOption(ee).getOrElse(Nil).collect(Fragment.linkReference).map(_.specClassName)
+    val s1Links = s1.fragments.fragments.run(ee).collect(Fragment.linkReference).map(_.specClassName)
     s1Links.contains(s2.specClassName)
   }
 
@@ -170,25 +171,25 @@ object SpecStructure {
 
   implicit class SpecStructureOps(s: SpecStructure)(implicit ee: ExecutionEnv) {
     def textsList: List[Fragment] =
-      s.texts.runOption(ee).getOrElse(Nil)
+      s.texts.run(ee)
 
     def examplesList: List[Fragment] =
-      s.examples.runOption(ee).getOrElse(Nil)
+      s.examples.run(ee)
 
     def tagsList: List[NamedTag] =
-      s.tags.runOption(ee).getOrElse(Nil)
+      s.tags.run(ee)
 
     def referencesList: List[Fragment] =
-      s.references.runOption(ee).getOrElse(Nil)
+      s.references.run(ee)
 
     def specificationRefsList: List[SpecificationRef] =
-      s.specificationRefs.runOption(ee).getOrElse(Nil)
+      s.specificationRefs.run(ee)
 
     def seeReferencesList: List[SpecificationRef] =
-      s.seeReferences.runOption(ee).getOrElse(Nil)
+      s.seeReferences.run(ee)
 
     def linkReferencesList: List[SpecificationRef] =
-      s.linkReferences.runOption(ee).getOrElse(Nil)
+      s.linkReferences.run(ee)
 
   }
 }

@@ -16,6 +16,7 @@ import control.producer._
 import fp.syntax._
 import ResultMatchers._
 import scala.concurrent._
+import ExecuteActions._
 
 class ExecutorSpec extends script.Specification with Groups with ThrownExpectations { def is = section("travis") ^ s2"""
 

@@ -5,9 +5,9 @@ import execute._
 import matcher._
 import core._
 import process._
-import control._
 import fp.syntax._
 import org.specs2.main.Arguments
+import org.specs2.control.ExecuteActions._
 
 class IsolatedExecutionSpec(env: Env) extends Spec { def is = skipAllIf(util.Properties.versionString.contains("2.11")) ^ s2"""
 

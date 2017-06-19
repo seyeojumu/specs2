@@ -9,6 +9,7 @@ import org.specs2.main.Arguments
 import org.specs2.specification.create._
 import org.specs2.specification.core._
 import org.specs2.specification.dsl.FragmentsDsl
+import org.specs2.control.ExecuteActions._
 
 class S2StringContextSpec extends Spec { def is = s2"""
 

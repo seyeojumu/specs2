@@ -16,6 +16,7 @@ import Actions._
 import reflect._
 import eff.ErrorEffect._
 import org.specs2.concurrent.ExecutionEnv
+import org.specs2.control.ExecuteActions._
 
 /**
  * Runner for Sbt

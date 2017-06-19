@@ -4,7 +4,7 @@ import control.eff._
 import all._
 import syntax.all._
 
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.duration._
 import org.specs2.fp._
 import org.specs2.fp.syntax._
 import org.specs2.execute.{AsResult, Result}
@@ -15,9 +15,6 @@ import org.specs2.control.producer._
 
 import scala.concurrent._
 import FutureEffect._
-import org.specs2.concurrent.ExecutionEnv
-
-import scala.util.control.NonFatal
 
 package object control {
 
@@ -57,39 +54,6 @@ package object control {
     warn(message)(m1) >>
     fail(failureMessage)
 
-  def executeAction[A](action: Action[A], ee: ExecutionEnv, printer: String => Unit): (Error Either A, List[String]) =
-    executeAction(action, printer)(ee)
-
-  def executeAction[A](action: Action[A], ee: ExecutionEnv): (Error Either A, List[String]) =
-    executeAction(action)(ee)
-
-  def executeAction[A](action: Action[A], printer: String => Unit = s => ())(ee: ExecutionEnv): (Error Either A, List[String]) = {
-    implicit val s = ee.scheduledExecutorService
-    implicit val ec = ee.executionContext
-
-    type S = Fx.append[Fx.fx2[TimedFuture, ErrorOrOk], Fx.fx2[Console, Warnings]]
-
-    Await.result(action.execSafe.flatMap(_.fold(t => exception[S, A](t), a => Eff.pure[S, A](a))).
-      runError.runConsoleToPrinter(printer).runWarnings.into[Fx1[TimedFuture]].runAsync, Duration.Inf)
-  }
-
-  def runActionFuture[A](action: Action[A], printer: String => Unit = s => ())(ee: ExecutionEnv): Future[A] = {
-    implicit val s = ee.scheduledExecutorService
-    implicit val ec = ee.executionContext
-
-    action.runError.runConsoleToPrinter(printer).discardWarnings.execSafe.runAsync.flatMap {
-      case Left(t)               => Future.failed(t)
-      case Right(Left(Left(t)))  => Future.failed(t)
-      case Right(Left(Right(s))) => Future.failed(new Exception(s))
-      case Right(Right(a))       => Future.successful(a)
-    }
-  }
-
-  def runAction[A](action: Action[A], printer: String => Unit = s => ())(ee: ExecutionEnv): Error Either A =
-    attemptExecuteAction(action, printer)(ee).fold(
-      t => Left(Left(t)),
-      other => other._1)
-
   def runOperation[A](operation: Operation[A], printer: String => Unit = s => ()): Error Either A =
     attemptExecuteOperation(operation, printer).fold(
       t => Left(Left(t)),
@@ -102,48 +66,8 @@ package object control {
       runError.runConsoleToPrinter(printer).runWarnings.run
   }
 
-  def attemptAction[A](action: Action[A], printer: String => Unit = s => ())(ee: ExecutionEnv): Throwable Either A =
-    runAction(action, printer)(ee) match {
-      case Left(Left(t)) => Left(t)
-      case Left(Right(f)) => Left(new Exception(f))
-      case Right(a)      => Right(a)
-    }
-
-  def attemptExecuteAction[A](action: Action[A], printer: String => Unit = s => ())(ee: ExecutionEnv): Throwable Either (Error Either A, List[String]) = {
-    implicit val s = ee.scheduledExecutorService
-    implicit val ec = ee.executionContext
-
-    try Await.result(action.runError.runConsoleToPrinter(printer).runWarnings.execSafe.runAsync, Duration.Inf)
-    catch { case NonFatal(t) => Left(t) }
-  }
-
-  def futureAction[A](action: Action[A], printer: String => Unit = s => ())(ee: ExecutionEnv): Future[A] = {
-    implicit val s = ee.scheduledExecutorService
-    implicit val ec = ee.executionContext
-
-    action.runError.runConsoleToPrinter(printer).discardWarnings.execSafe.runAsync.flatMap {
-      case Left(t) => Future.failed(t)
-      case Right(Left(Left(t))) => Future.failed(t)
-      case Right(Left(Right(t))) => Future.failed(new Exception(t))
-      case Right(Right(a)) => Future.successful(a)
-    }
-  }
-
   def attemptExecuteOperation[A](operation: Operation[A], printer: String => Unit = s => ()): Throwable Either (Error Either A, List[String]) =
     operation.runError.runConsoleToPrinter(printer).runWarnings.execSafe.run
-
-  /**
-   * This implicit allows an Action[result] to be used inside an example.
-   *
-   * For example to read a database.
-   */
-  implicit def actionAsResult[T : AsResult](ee: ExecutionEnv): AsResult[Action[T]] = new AsResult[Action[T]] {
-    def asResult(action: =>Action[T]): Result =
-      runAction(action)(ee).fold(
-        err => err.fold(t => org.specs2.execute.Error(t), f => org.specs2.execute.Failure(f)),
-        ok => AsResult(ok)
-      )
-  }
 
   /**
    * This implicit allows an Operation[result] to be used inside an example.
@@ -157,21 +81,6 @@ package object control {
   }
 
   implicit class actionOps[T](action: Action[T]) {
-
-    def attempt(ee: ExecutionEnv): Throwable Either T =
-      attemptAction(action)(ee)
-
-    def run(ee: ExecutionEnv)(implicit e: Monoid[T]): T =
-      runAction(action, println)(ee) match {
-        case Right(a) => a
-        case Left(t) => println("error while interpreting an action "+t.fold(Throwables.render, f => f)); Monoid[T].zero
-      }
-
-    def runOption(ee: ExecutionEnv): Option[T] =
-      runAction(action, println)(ee) match {
-        case Right(a) => Option(a)
-        case Left(t) => println("error while interpreting an action "+t.fold(Throwables.render, f => f)); None
-      }
 
     def when(condition: Boolean): Action[Unit] =
       if (condition) action.as(()) else Actions.ok(())

@@ -10,6 +10,7 @@ import control._
 import producer._
 import producers._
 import fp.syntax._
+import ExecuteActions._
 
 /**
  * Functions for executing fragments.

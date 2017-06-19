@@ -13,6 +13,7 @@ import matcher._
 import _root_.org.specs2.mutable.{Around => MAround, Before => MBefore, After => MAfter}
 import fp.syntax._
 import control._
+import ExecuteActions._
 
 class ContextSpec extends script.Spec with ResultMatchers with Groups { def is = s2"""
 

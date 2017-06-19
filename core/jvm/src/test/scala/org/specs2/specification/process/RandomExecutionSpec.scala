@@ -13,7 +13,7 @@ import org.specs2.execute.{AsResult, Result}
 
 import scala.concurrent.ExecutionContext
 import fp.syntax._
-import control._
+import control.ExecuteActions._
 
 class RandomExecutionSpec(env: Env) extends script.Spec with Groups with ThrownExpectations with ExampleDsl { def is = s2"""
 

@@ -8,6 +8,7 @@ import io.StringOutput
 import org.specs2.specification.{AfterAll, Tables}
 import specification.core.{Env, SpecificationStructure}
 import runner._
+import org.specs2.control.ExecuteActions._
 
 class NotifierSpec extends Specification { def is = s2"""
 

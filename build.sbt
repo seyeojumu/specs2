@@ -24,9 +24,9 @@ lazy val specs2 = Project(
       siteSettings     ++
       Seq(name := "specs2", packagedArtifacts := Map.empty)
 ).aggregate(
-  fpJvm, commonJvm, matcherJvm, coreJvm, matcherExtraJvm, catsJvm, scalazJvm, htmlJvm, analysisJvm,
+  fpJvm, commonJvm, matcherJvm, coreJvm, matcherExtraJvm, scalazJvm, htmlJvm, analysisJvm,
   shapelessJvm, formJvm, markdownJvm, gwtJvm, junitJvm, scalacheckJvm, mockJvm, tests,
-  fpJs, commonJs, matcherJs, coreJs, matcherExtraJs, catsJs, scalazJs, htmlJs, analysisJs,
+  fpJs, commonJs, matcherJs, coreJs, matcherExtraJs, scalazJs, htmlJs, analysisJs,
   shapelessJs, formJs, markdownJs, gwtJs, junitJs, scalacheckJs, mockJs)
   .enablePlugins(GitBranchPrompt).enablePlugins(ScalaJSPlugin)
 
@@ -194,7 +194,7 @@ lazy val pom = Project(id = "pom", base = file("pom"),
   settings =
     moduleSettings("") ++ Seq(
       name := "specs2")
-  ).dependsOn(commonJvm, matcherJvm, matcherExtraJvm, coreJvm, catsJvm, scalazJvm, htmlJvm, analysisJvm,
+  ).dependsOn(commonJvm, matcherJvm, matcherExtraJvm, coreJvm, scalazJvm, htmlJvm, analysisJvm,
     shapelessJvm, formJvm, markdownJvm, gwtJvm, junitJvm, scalacheckJvm, mockJvm)
 
 lazy val shapeless = crossProject.in(file("shapeless")).
@@ -208,21 +208,6 @@ lazy val shapeless = crossProject.in(file("shapeless")).
 
 lazy val shapelessJs = shapeless.js.dependsOn(matcherJs)
 lazy val shapelessJvm = shapeless.jvm.dependsOn(matcherJvm)
-
-lazy val cats = crossProject.in(file("cats")).
-  settings(moduleSettings("cats") ++
-    Seq(libraryDependencies ++= (
-      if (scalaMinorVersionAtLeast(scalaVersion.value, 12))
-        Seq()
-      else
-        depends.cats)) ++
-    Seq(name := "specs2-cats") ++
-    Seq((skip in compile) := scalaMinorVersionAtLeast(scalaVersion.value, 12),
-      publishArtifact := !scalaMinorVersionAtLeast(scalaVersion.value, 12)):_*).
-  jvmSettings(moduleJvmSettings("cats"))
-
-lazy val catsJs = cats.js.dependsOn(matcherJs, coreJs % "test->test")
-lazy val catsJvm = cats.jvm.dependsOn(matcherJvm, coreJvm % "test->test")
 
 lazy val scalaz = crossProject.in(file("scalaz")).
   settings(moduleSettings("scalaz") ++
@@ -283,7 +268,6 @@ lazy val compilationSettings = Seq(
     Seq((sourceDirectory in Compile).value / s"scala-${scalaSourceVersion(scalaBinaryVersion.value)}",
       (sourceDirectory in Compile).value / s"scala-scalaz-7.1.x",
       (sourceDirectory in (Test, test)).value / s"scala-scalaz-7.1.x"),
-  javacOptions ++= Seq("-Xmx3G", "-Xms512m", "-Xss4m"),
   maxErrors := 20,
   incOptions := incOptions.value.withNameHashing(true),
   scalacOptions in Compile ++=

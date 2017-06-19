@@ -10,6 +10,7 @@ import main.Arguments
 import org.specs2.fp.syntax._
 import Runner._
 import reporter.LineLogger._
+import ExecuteActions._
 
 /**
  * The class runner expects the first command-line argument to be the class name of

@@ -12,6 +12,8 @@ import org.specs2.fp.syntax._
 import main.Arguments
 import reflect.Classes
 import reporter._, Printer._
+import ExecuteActions._
+import scala.util.{Success, Failure}
 
 /**
  * reusable actions for Runners
@@ -21,17 +23,24 @@ object Runner {
   /**
    * Execute some actions and exit with the proper code if 'exit' is true
    */
-  def execute(actions: Action[Stats], arguments: Arguments, exit: Boolean)(env: Env): Unit = {
-    val (result, warnings) = executeAction(actions, env.specs2ExecutionEnv, consoleLogging)
+  def execute(action: Action[Stats], arguments: Arguments, exit: Boolean)(env: Env): Unit = {
     val logging = (s: String) => Name(consoleLogging(s))
-    result.fold(
-      error => error.fold(
-        t => logUserWarnings(warnings)(logging) >> logThrowable(t, arguments)(logging),
-        m => logUserWarnings(warnings)(logging) >> logging(m)
-      ) >> Name(exitSystem(100, exit)),
-      ok => logUserWarnings(warnings)(logging) >>
-        (if (ok.isSuccess) Name(exitSystem(0, exit)) else Name(exitSystem(1, exit)))
-    ).value
+    implicit val ec = env.specs2ExecutionEnv.executionContext
+
+    executeActionFuture(action, consoleLogging)(env.specs2ExecutionEnv).onComplete {
+      case Failure(t) =>
+        logThrowable(t, arguments)(logging)
+
+      case Success((result, warnings))=>
+        result.fold(
+          error => error.fold(
+            t => logUserWarnings(warnings)(logging) >> logThrowable(t, arguments)(logging),
+            m => logUserWarnings(warnings)(logging) >> logging(m)
+          ) >> Name(exitSystem(100, exit)),
+          ok => logUserWarnings(warnings)(logging) >>
+            (if (ok.isSuccess) Name(exitSystem(0, exit)) else Name(exitSystem(1, exit)))
+        ).value
+    }
   }
 
   /**

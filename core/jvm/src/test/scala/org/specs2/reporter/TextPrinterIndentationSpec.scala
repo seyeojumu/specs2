@@ -3,7 +3,7 @@ package reporter
 
 import main.Arguments
 import org.specs2.specification.core._
-import control._
+import org.specs2.control.ExecuteActions._
 
 class TextPrinterIndentationSpec(env: Env) extends Specification { def is = s2"""
 
