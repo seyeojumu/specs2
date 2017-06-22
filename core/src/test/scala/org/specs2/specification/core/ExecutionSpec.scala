@@ -5,14 +5,8 @@ package core
 import execute._
 import process._
 import control._
-import org.specs2.concurrent.ExecutionEnv
-import org.specs2.matcher.{ActionMatchers, ResultMatchers}
 
-import scala.concurrent.duration._
-import scala.concurrent.Future
-import Actions._
-
-class ExecutionSpec(implicit ee: ExecutionEnv) extends Specification with ActionMatchers with ResultMatchers { def is = s2"""
+class ExecutionSpec extends Specification { def is = s2"""
 
  A link is executed by getting the corresponding specification ref status in the Statistics store
    the Stats is the stats of the spec + specs += 1 $linkExecution
@@ -22,16 +16,16 @@ class ExecutionSpec(implicit ee: ExecutionEnv) extends Specification with Action
 """
 
   def linkExecution = { env1: Env =>
-    val store = StatisticsRepositoryCreation.memory
+    val store = StatisticsRepository.memory
     val env = env1.setStatisticRepository(store)
     val stats =  Stats(specs = 2, failures = 1, examples = 1)
     store.storeStatistics(getClass.getName, stats).runOption
 
-    timedFuture(Execution.specificationStats(getClass.getName).startExecution(env).executionResult) must beOk(beLike[Result] {
+    Execution.specificationStats(getClass.getName).startExecution(env).result must beLike {
       case DecoratedResult(s: Stats, r) =>
         (s must_== Stats(specs = 3, failures = 1, examples = 1)) and
         (r.isSuccess must beFalse)
-    })
+    }
 
   }
 
