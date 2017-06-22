@@ -41,7 +41,6 @@ lazy val specs2Settings = Seq(
 
 lazy val specs2Version = settingKey[String]("defines the current specs2 version")
 lazy val scalazVersion = settingKey[String]("defines the current scalaz version")
-lazy val scalaJsVersion = "0.6.15"
 
 def moduleSettings(name: String) =
   coreDefaultSettings  ++
@@ -93,20 +92,20 @@ lazy val commonJvm = common.jvm.dependsOn(fpJvm)
 lazy val core = crossProject.in(file("core")).
   settings(Seq(
     libraryDependencies ++=
+      depends.sbtJvm(scalaJSVersion) ++
       depends.paradise(scalaVersion.value) ++
-        depends.testInterface.map(_ % "optional") ++
-        depends.mockito.map(_ % "test") ++
-        depends.junit.map(_ % "test")) ++
+      depends.testInterface.map(_ % "optional") ++
+      depends.mockito.map(_ % "test") ++
+      depends.junit.map(_ % "test")) ++
     moduleSettings("core") ++
     Seq(name := "specs2-core"):_*).
   jsSettings(
-    libraryDependencies += "org.scala-js" %% "scalajs-test-interface" % scalaJsVersion,
+    libraryDependencies ++= depends.sbtJs(scalaJSVersion),
     scalaJSStage in Test := FastOptStage
   ).
   jvmSettings(
     moduleJvmSettings("core") ++
-      Seq(libraryDependencies +=
-        "org.scala-js" %% "scalajs-test-interface" % scalaJsVersion):_*)
+      Seq(libraryDependencies ++= depends.sbtJvm(scalaJSVersion)))
 
 lazy val coreJs  = core.js.dependsOn(matcherJs, commonJs % "test->test")
 lazy val coreJvm = core.jvm.dependsOn(matcherJvm, commonJvm % "test->test")

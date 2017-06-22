@@ -44,6 +44,9 @@ abstract class BaseSbtRunner(args: Array[String], remoteArgs: Array[String], loa
         else
           Array()
 
+      def execute(handler: EventHandler, loggers: Array[Logger], continuation: Array[Task] => Unit): Unit =
+        continuation(execute(handler, loggers))
+
       def execute(handler: EventHandler, loggers: Array[Logger]): Array[Task] = {
         val (result, warnings) = specStructure
         processResult(handler, loggers)(result, warnings)
@@ -54,8 +57,9 @@ abstract class BaseSbtRunner(args: Array[String], remoteArgs: Array[String], loa
           processResult(handler, loggers)(rs, ws)
         }
         // nothing more to execute
-        Array[Task]()
+        Array()
       }
+
 
       /** @return the correponding task definition */
       def taskDef = aTaskDef
