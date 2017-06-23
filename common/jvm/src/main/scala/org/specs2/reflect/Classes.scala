@@ -12,7 +12,7 @@ import eff._
 /**
  * This trait provides functions to instantiate classes
  */
-trait Classes {
+trait Classes extends ClassOperations {
 
   /**
    * Try to create an instance of a given class by using whatever constructor is available
@@ -20,6 +20,9 @@ trait Classes {
    *
    * This is useful to instantiate nested classes which are referencing their outer class in their constructor
    */
+  def createInstance[T <: AnyRef](className: String)(implicit m: ClassTag[T]): Operation[T] =
+    createInstance(className, getClass.getClassLoader)
+
   def createInstance[T <: AnyRef](className: String, loader: ClassLoader, defaultInstances: =>List[AnyRef] = Nil)(implicit m: ClassTag[T]): Operation[T] =
     loadClass(className, loader) >>= { klass: Class[T] =>
       createInstanceFromClass(klass, loader, defaultInstances)
