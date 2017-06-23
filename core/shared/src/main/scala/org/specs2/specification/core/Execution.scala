@@ -282,15 +282,15 @@ object Execution {
 
   /** create an execution with a Continuation */
   def apply[T : AsResult](r: =>T, continuation: FragmentsContinuation) =
-    new Execution(run = Some((env: Env) => Future.successful(() => AsResult(r))), continuation = Some(continuation))
+    new Execution(run = Some((env: Env) => Future.successful(() => AsResult.safely(r))), continuation = Some(continuation))
 
   /** create an execution returning a specific result */
   def result[T : AsResult](r: =>T): Execution =
-    withEnv(_ => AsResult(r))
+    withEnv(_ => AsResult.safely(r))
 
   /** create an execution using the Env */
   def withEnv[T : AsResult](f: Env => T): Execution =
-    Execution(Some((env: Env) => Future(() => AsResult(f(env)))(env.executionContext)))
+    Execution(Some((env: Env) => Future(() => AsResult.safely(f(env)))(env.executionContext)))
 
   /** create an execution using the Env and Flatten the execution */
   def withEnvFlatten(f: Env => Execution): Execution =
@@ -304,11 +304,11 @@ object Execution {
 
   /** create an execution using the Env */
   def withEnvSync[T : AsResult](f: Env => T): Execution =
-    Execution(Some((env: Env) => Future.successful(() => AsResult(f(env)))))
+    Execution(Some((env: Env) => Future.successful(() => AsResult.safely(f(env)))))
 
   /** create an execution using the Env */
   def withEnvAsync[T : AsResult](f: Env => Future[T]): Execution =
-    Execution(Some((env: Env) => f(env).map(r => () => AsResult(r))(env.executionContext)))
+    Execution(Some((env: Env) => f(env).map(r => () => AsResult.safely(r))(env.executionContext)))
 
   /** create an execution using the execution environment */
   def withExecutionEnv[T : AsResult](f: ExecutionEnv => T) =
@@ -320,7 +320,7 @@ object Execution {
 
   /** create an execution which will not execute but directly return a value */
   def executed[T : AsResult](r: T): Execution = {
-    lazy val f = Future.successful(AsResult(r))
+    lazy val f = Future.successful(AsResult.safely(r))
     Execution(
       run = Some((e: Env) => f.map(res => () => res)(e.executionContext)),
       executing = Some(Right(f))
@@ -350,7 +350,7 @@ object Execution {
 
   /** get the execution statistics of a specification as a Decorated result */
   def getStatistics(env: Env, specClassName: String): Result =
-    AsResult(env.statisticsRepository.getStatisticsOr(specClassName, Stats.empty).map { s =>
+    AsResult.safely(env.statisticsRepository.getStatisticsOr(specClassName, Stats.empty).map { s =>
       if (s.examples == 0) Pending(" "): Result // use a space to avoid PENDING to be appended after the spec name
       else                 DecoratedResult(s.copy(specs = s.specs + 1), s.result): Result
     })
