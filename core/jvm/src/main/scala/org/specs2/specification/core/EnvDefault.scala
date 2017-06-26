@@ -13,6 +13,7 @@ object EnvDefault {
 
   def default: Env =
     Env(Arguments(),
+
         selectorInstance = (arguments: Arguments) =>
           Arguments.instance(arguments.select.selector).getOrElse(DefaultSelector),
 

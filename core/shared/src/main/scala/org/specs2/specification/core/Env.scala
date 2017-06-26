@@ -6,11 +6,11 @@ import main.{Arguments, CommandLine}
 import execute._
 import org.specs2.concurrent.ExecutionEnv
 import reporter.LineLogger
-import LineLogger._
 import io._
 import control._
-import org.specs2.fp.Monoid
-import process.{DefaultExecutor, DefaultSelector, Executor, Selector, StatisticsRepository}
+import process.{Executor, Selector, StatisticsRepository}
+import EnvDefault._
+import reflect._
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -24,18 +24,23 @@ import scala.concurrent.duration.FiniteDuration
  *       to be shutdown at the end of the execution
  */
 case class Env(
-          executionEnv:        ExecutionEnv,
-          specs2ExecutionEnv:  ExecutionEnv,
-          arguments:           Arguments,
-          systemLogger:        Logger,
-          selectorInstance:    Arguments => Selector,
-          executorInstance:    Arguments => Executor,
-          lineLogger:          LineLogger,
-          statsRepository:     Arguments => StatisticsRepository,
-          random:              scala.util.Random,
-          fileSystem:          FileSystem,
-          executionParameters: ExecutionParameters,
-          customClassLoader:   Option[ClassLoader]) {
+          arguments:           Arguments                         = default.arguments,
+          systemLogger:        Logger                            = default.systemLogger,
+          selectorInstance:    Arguments => Selector             = default.selectorInstance,
+          executorInstance:    Arguments => Executor             = default.executorInstance,
+          lineLogger:          LineLogger                        = default.lineLogger,
+          statsRepository:     Arguments => StatisticsRepository = default.statsRepository,
+          random:              scala.util.Random                 = default.random,
+          fileSystem:          FileSystem                        = default.fileSystem,
+          executionParameters: ExecutionParameters               = default.executionParameters,
+          customClassLoader:   Option[ClassLoader]               = default.customClassLoader,
+          classLoading:        ClassLoading                      = default.classLoading) {
+
+  lazy val executionEnv: ExecutionEnv =
+    ExecutionEnv.create(arguments, systemLogger, "env"+hash)
+
+  lazy val specs2ExecutionEnv: ExecutionEnv =
+    ExecutionEnv.create(arguments, systemLogger, "specs2-env"+hash)
 
   lazy val statisticsRepository: StatisticsRepository =
     statsRepository(arguments)
@@ -108,81 +113,18 @@ case class Env(
   /** set a new classloader to be used as the context classloader for each execution */
   def setCustomClassLoader(classLoader: ClassLoader): Env =
     copy(customClassLoader = Some(classLoader))
+
+  def setContextClassLoader(): Unit =
+    customClassLoader.foreach(classLoading.setContextClassLoader)
 }
 
 object Env {
-
-  def apply(arguments: Arguments = Arguments(),
-
-            systemLogger: Logger = consoleLogging,
-
-            // selector class
-            selectorInstance: Arguments => Selector = (arguments: Arguments) =>
-              Arguments.instance(arguments.select.selector).getOrElse(DefaultSelector),
-
-            // executor instance
-            executorInstance: Arguments => Executor = (arguments: Arguments) =>
-              Arguments.instance(arguments.execute.executor).getOrElse(DefaultExecutor),
-
-            // default console logger
-            lineLogger: LineLogger = NoLineLogger,
-
-            // default statistics repository
-            statsRepository: Arguments => StatisticsRepository = (arguments: Arguments) =>
-              StatisticsRepository.file(arguments.commandLine.directoryOr("stats.outdir", "target" / "specs2-reports" / "stats")),
-
-            // random generator
-            random: scala.util.Random = new scala.util.Random,
-
-            // file system interface
-            fileSystem: FileSystem = FileSystem,
-
-            // parameters for fragments execution
-            executionParameters: ExecutionParameters = ExecutionParameters(),
-
-            // custom context class loader passed by sbt
-            customClassLoader: Option[ClassLoader] = None): Env = {
-
-    val executionEnv: ExecutionEnv =
-      ExecutionEnv.create(arguments, systemLogger, "user-env-"+System.identityHashCode(this))
-
-    val specs2ExecutionEnv: ExecutionEnv =
-      ExecutionEnv.create(arguments, systemLogger, "specs2-env-"+System.identityHashCode(this))
-
-    Env(
-      executionEnv,
-      specs2ExecutionEnv,
-      arguments,
-      systemLogger,
-      selectorInstance,
-      executorInstance,
-      lineLogger,
-      statsRepository,
-      random,
-      fileSystem,
-      executionParameters,
-      customClassLoader
-    )
-  }
 
   def executeResult[R : AsResult](r: Env => R) = {
     lazy val env = Env()
     AsResult(r(env))
   }
 
-  implicit def finiteDurationMonoid: Monoid[Option[FiniteDuration]] = new Monoid[Option[FiniteDuration]] {
-    val zero: Option[FiniteDuration] =
-      None
-
-    def append(f1: Option[FiniteDuration], f2: =>Option[FiniteDuration]): Option[FiniteDuration] =
-      (f1, f2) match {
-        case (Some(t1), Some(t2)) => Some(t1 min t2)
-        case (Some(t1), None)     => Some(t1)
-        case (None,     Some(t2)) => Some(t2)
-        case _                    => None
-      }
-
-  }
 }
 
 case class ExecutionParameters(timeout:       Option[FiniteDuration] = None,

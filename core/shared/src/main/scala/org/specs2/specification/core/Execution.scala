@@ -9,7 +9,7 @@ import org.specs2.concurrent.ExecutionEnv
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
-import fp.Show
+import fp.{Monoid, Show}
 import fp.syntax._
 import specification.process.Stats
 import time.SimpleTimer
@@ -19,7 +19,7 @@ import control._
 import scala.util.control.NonFatal
 import ResultLogicalCombinators._
 import org.specs2.control.eff.TimedFuture
-import Env.finiteDurationMonoid
+import Execution._
 
 /**
  * Execution of a Fragment
@@ -126,7 +126,7 @@ case class Execution(run:            Option[Env => Future[() => Result]]     = N
         try {
           val s = env.scheduledExecutorService
           implicit val ec = env.executionContext
-          env.customClassLoader.foreach(Thread.currentThread.setContextClassLoader(_))
+          env.setContextClassLoader()
 
           val future = TimedFuture((s, e) => r(env).map(_()), to).runNow(s, ec)
           setExecuting(future).copy(timeout = to).startTimer
@@ -363,6 +363,20 @@ object Execution {
       if (s.examples == 0) Pending(" "): Result // use a space to avoid PENDING to be appended after the spec name
       else                 DecoratedResult(s.copy(specs = s.specs + 1), s.result): Result
     })
+
+  implicit def finiteDurationMonoid: Monoid[Option[FiniteDuration]] = new Monoid[Option[FiniteDuration]] {
+    val zero: Option[FiniteDuration] =
+      None
+
+    def append(f1: Option[FiniteDuration], f2: =>Option[FiniteDuration]): Option[FiniteDuration] =
+      (f1, f2) match {
+        case (Some(t1), Some(t2)) => Some(t1 min t2)
+        case (Some(t1), None)     => Some(t1)
+        case (None,     Some(t2)) => Some(t2)
+        case _                    => None
+      }
+
+  }
 
 }
 

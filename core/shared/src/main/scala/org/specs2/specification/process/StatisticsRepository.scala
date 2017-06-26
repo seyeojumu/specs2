@@ -68,34 +68,3 @@ case class StatisticsMemoryStore(statistics: HashMap[String, Stats] = new HashMa
 
 case class SpecificationStatsKey(specClassName: String) extends Key[Stats]
 case class SpecificationResultKey(specClassName: String, description: Description) extends Key[Result]
-
-object StatisticsRepository {
-  def memory = StatisticsRepository(StatisticsStore.memory)
-  def file(dir: DirectoryPath) = StatisticsRepository(StatisticsStore.directory(dir))
-}
-
-object StatisticsStore {
-  import FileSystem._
-
-  /**
-   * key-value store backed-up by the file system
-   */
-  def directory(baseDirectory: DirectoryPath) = new Store {
-
-    def set[A](key: Key[A], fact: A): Operation[Unit] =
-      writeFile(filepath(key), StoreKeys.encode(key, fact))
-
-    def get[A](key: Key[A]): Operation[Option[A]] =
-      exists(filepath(key)).flatMap { e =>
-        if (e) readFile(filepath(key)).map(content => StoreKeys.decode(key, content))
-        else   Operations.ok(None)
-      }
-
-    def reset: Operation[Unit] = delete(baseDirectory)
-
-    private def filepath[A](key: Key[A]): FilePath =
-      baseDirectory / FilePath.unsafe(StoreKeys.resolve(key))
-  }
-
-  def memory = StatisticsMemoryStore()
-}
