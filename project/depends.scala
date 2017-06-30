@@ -50,18 +50,9 @@ object depends {
 
   lazy val pegdown = Seq("org.pegdown" % "pegdown" % "1.6.0")
 
-  lazy val testInterface = Seq("org.scala-sbt"  % "test-interface" % "1.0")
+  lazy val testInterface = Seq("org.scala-sbt" % "test-interface" % "1.0")
 
   lazy val tagsoup = "org.ccil.cowan.tagsoup" % "tagsoup" % "1.2"
-
-  def sbtJvm(scalaJsVersion: String) = Seq(
-    "org.scala-sbt" % "test-interface" % "1.0",
-    "org.scala-js" %% "scalajs-stubs" % scalaJsVersion % "provided"
-  )
-
-  def sbtJs(scalaJsVersion: String) = Seq(
-    "org.scala-js" %% "scalajs-test-interface" % scalaJsVersion
-  )
 
   def paradise(scalaVersion: String) =
     if (scalaMinorVersionAtLeast(scalaVersion, 11))

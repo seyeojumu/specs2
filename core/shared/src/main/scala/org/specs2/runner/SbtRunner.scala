@@ -78,17 +78,10 @@ abstract class BaseSbtRunner(args: Array[String], remoteArgs: Array[String], loa
       /** @return the correponding task definition */
       def taskDef = aTaskDef
 
-<<<<<<< HEAD:core/shared/src/main/scala/org/specs2/runner/SbtRunner.scala
-      /** display errorrs and warnings */
+      /** display errors and warnings */
       def processResult[A](handler: EventHandler, loggers: Array[Logger])(result: Error Either A, warnings: List[String]): Unit =
         result match {
           case Left(e) =>
-=======
-      /** display errors and warnings */
-      def processResult[A](handler: EventHandler, loggers: Array[Logger])(result: Error \/ A, warnings: List[String]): Unit = {
-        result.fold(
-          e => {
->>>>>>> 0807b39... fixed the reporting of forms in sbt (and notifiers):core/src/main/scala/org/specs2/runner/SbtRunner.scala
             if (warnings.nonEmpty) handleRunWarnings(warnings, loggers, commandLineArguments)
             else handleRunError(e, loggers, sbtEvents(taskDef, handler), commandLineArguments)
 
