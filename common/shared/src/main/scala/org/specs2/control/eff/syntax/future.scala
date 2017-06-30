@@ -1,9 +1,8 @@
 package org.specs2.control.eff
 package syntax
 
-import java.util.concurrent.ScheduledExecutorService
-
-import scala.concurrent.{ExecutionContext, Future}
+import org.specs2.concurrent.ExecutorServices
+import scala.concurrent._
 
 object future extends future
 
@@ -20,10 +19,10 @@ final class FutureOps[R, A](val e: Eff[R, A]) extends AnyVal {
   def futureMemo(key: AnyRef, cache: Cache)(implicit future: TimedFuture /= R): Eff[R, A] =
     FutureInterpretation.futureMemo(key, cache, e)
 
-  def runAsync(implicit sexs: ScheduledExecutorService, exc: ExecutionContext, m: Member.Aux[TimedFuture, R, NoFx]): Future[A] =
+  def runAsync(implicit es: ExecutorServices, m: Member.Aux[TimedFuture, R, NoFx]): Future[A] =
     FutureInterpretation.runAsync(e)
 
-  def runSequential(implicit sexs: ScheduledExecutorService, exc: ExecutionContext, m: Member.Aux[TimedFuture, R, NoFx]): Future[A] =
+  def runSequential(implicit es: ExecutorServices, m: Member.Aux[TimedFuture, R, NoFx]): Future[A] =
     FutureInterpretation.runSequential(e)
 }
 

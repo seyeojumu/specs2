@@ -54,14 +54,11 @@ case class Env(
   def executionContext =
     executionEnv.executionContext
 
-  def scheduledExecutorService =
-    executionEnv.scheduledExecutorService
+  def executorServices =
+    executionEnv.executorServices
 
   def specs2ExecutionContext =
     specs2ExecutionEnv.executionContext
-
-  def specs2ScheduledExecutorService =
-    specs2ExecutionEnv.scheduledExecutorService
 
   lazy val timeout =
     executionParameters.timeout

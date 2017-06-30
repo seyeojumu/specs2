@@ -1,17 +1,17 @@
 package org.specs2
 package reporter
 
-import matcher.{MustMatchers}
+import matcher.MustMatchers
 import specification._
-import dsl.{FragmentsDsl}
-import specification.create.{DefaultFragmentFactory}
+import dsl.FragmentsDsl
+import specification.create.DefaultFragmentFactory
 import control._
 import text.Trim._
 import execute._
 import main.{Report, Arguments}
 import LineLogger._
 import core._
-import process.{Stats, DefaultExecutor, StatisticsRepository}
+import process.{Stats, DefaultExecutor, StatisticsRepositoryCreation}
 import io.StringOutput
 import text.AnsiColors
 
@@ -205,7 +205,7 @@ s2"""e1 ${"abcdeabcdeabcdeabcdeabcde" must_== "adcdeadcdeadcdeadcdeadcde"}""" co
     """|[info] the * STRING spec"""
 
   def j3 = {
-    val repository = StatisticsRepository.memory
+    val repository = StatisticsRepositoryCreation.memory
     repository.storeStatistics(classOf[String].getName, Stats(examples = 1, failures = 1)).runOption
     val env = Env().setStatisticRepository(repository)
     (s2"""the ${SpecificationRef(SpecHeader(classOf[String], Some("STRING")), Arguments())} spec""", env) contains

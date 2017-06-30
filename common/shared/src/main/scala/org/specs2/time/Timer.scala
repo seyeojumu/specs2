@@ -1,12 +1,12 @@
 package org.specs2
 package time
 
-import java.util.Calendar
+import java.util.Date
 
 import text.Plural._
 import control.Exceptions._
 import org.specs2.control.origami.Fold
-import org.specs2.fp._
+import org.specs2.fp.{Id, Monad}
 
 /**
  * This trait provides Timer functionalities based on the Java Calendar milliseconds
@@ -68,8 +68,8 @@ trait HmsTimer[T <: HmsTimer[T]] {
   def hms: String = {
     val (hours, minutes, seconds, millis) = hourMinutesSecondsMillis
     List(hours.toInt.strictlyPositiveOrEmpty("hour"),
-         minutes.toInt.strictlyPositiveOrEmpty("minute"),
-         seconds.toInt.qty("second")).filter(_.nonEmpty).mkString(" ")
+      minutes.toInt.strictlyPositiveOrEmpty("minute"),
+      seconds.toInt.qty("second")).filter(_.nonEmpty).mkString(" ")
   }
 
   /**
@@ -78,13 +78,13 @@ trait HmsTimer[T <: HmsTimer[T]] {
   def time: String = {
     val (_, _, _, millis) = hourMinutesSecondsMillis
     (if (hms != "0 second") hms + ", " else "") +
-    millis + " ms"
+      millis + " ms"
   }
 
   /**
    * this method can be overriden for testing
    */
-  protected def getTime = Calendar.getInstance.getTime.getTime
+  protected def getTime = new Date().getTime
 }
 
 class SimpleTimer extends HmsTimer[SimpleTimer] {
@@ -111,12 +111,11 @@ object SimpleTimer {
   }
 
   def timerFold[T] = new Fold[Id, T, SimpleTimer] {
+    implicit val monad = Monad.idMonad
     type S = SimpleTimer
-    val monad = Monad.idMonad
-
     def start = (new SimpleTimer).start
-    def fold: (S, T) => S = (s, t) => s
-    def end(s: S) =  s.stop
+    def fold = (s, t) => s
+    def end(s: S) = s.stop
   }
 
 }

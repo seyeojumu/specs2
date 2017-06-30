@@ -41,9 +41,8 @@ trait ImmutableSpecificationStructure extends SpecificationStructure {
    */
   private def isolate(fragment: Fragment, position: Int, env: Env): Action[Fragment] = {
     protect {
-      val instance = runOperation(Classes.createInstanceFromClass[ImmutableSpecificationStructure](
+      lazy val instance = runOperation(Classes.createInstanceFromClass[ImmutableSpecificationStructure](
         getClass.asInstanceOf[Class[ImmutableSpecificationStructure]],
-        getClass.getClassLoader,
         env.defaultInstances), env.systemLogger)
 
       val execution: Action[Execution] =

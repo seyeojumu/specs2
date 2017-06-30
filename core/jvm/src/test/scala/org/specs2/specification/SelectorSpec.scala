@@ -175,7 +175,7 @@ class SelectorSpec(ee: ExecutionEnv) extends script.Specification with Groups wi
 
   "by previous" - new group {
     eg := {
-      val repo = StatisticsRepository.memory
+      val repo = StatisticsRepositoryCreation.memory
       val env = Env(arguments = Arguments.split("was x")).setStatisticRepository(repo)
 
       repo.storeResult(getClass.getName, Text("e1"), org.specs2.execute.Failure("failed")).runOption

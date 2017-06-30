@@ -200,6 +200,12 @@ trait EffImplicits {
       }
   }
 
+  implicit def naturalInto[R, U](into: IntoPoly[R, U]): Eff[R, ?] ~> Eff[U, ?] =
+    new (Eff[R, ?] ~> Eff[U, ?]) {
+      def apply[A](e: Eff[R, A]): Eff[U, A] = into(e)
+    }
+
+
 }
 
 object EffImplicits extends EffImplicits

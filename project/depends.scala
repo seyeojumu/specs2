@@ -1,5 +1,6 @@
 import sbt._
 import Keys._
+import org.scalajs.sbtplugin.ScalaJSPlugin.AutoImport._
 
 object depends {
 

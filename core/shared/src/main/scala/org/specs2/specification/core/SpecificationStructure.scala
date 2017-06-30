@@ -8,6 +8,9 @@ import reflect.Classes
 import Classes._
 import org.specs2.fp.syntax._
 
+import scala.scalajs.reflect.annotation.EnableReflectiveInstantiation
+
+@EnableReflectiveInstantiation
 trait ContextualSpecificationStructure {
   def structure: Env => SpecStructure
   def fragments = (env: Env) => structure(env).fragments

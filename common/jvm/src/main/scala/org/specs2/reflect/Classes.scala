@@ -28,7 +28,10 @@ trait Classes extends ClassOperations {
       createInstanceFromClass(klass, loader, defaultInstances)
     }
 
-  def createInstanceFromClass[T <: AnyRef](klass: Class[T], loader: ClassLoader, defaultInstances: =>List[AnyRef] = Nil)(implicit m: ClassTag[T]): Operation[T] =
+  def createInstanceFromClass[T <: AnyRef](klass: Class[T], defaultInstances: =>List[AnyRef])(implicit m: ClassTag[T]): Operation[T] =
+    createInstanceFromClass(klass, klass.getClassLoader, defaultInstances)
+
+  def createInstanceFromClass[T <: AnyRef](klass: Class[T], lzoader: ClassLoader, defaultInstances: =>List[AnyRef] = Nil)(implicit m: ClassTag[T]): Operation[T] =
     findInstance[T](klass, loader, defaultInstances,
       klass.getDeclaredConstructors.toList.filter(_.getParameterTypes.size <= 1).sortBy(_.getParameterTypes.size))
 

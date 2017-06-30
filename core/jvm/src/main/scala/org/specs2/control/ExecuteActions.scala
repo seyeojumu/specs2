@@ -21,9 +21,7 @@ import scala.util.control.NonFatal
 trait ExecuteActions {
 
   def executeAction[A](action: Action[A], printer: String => Unit = s => ())(ee: ExecutionEnv): (Error Either A, List[String]) = {
-    implicit val s = ee.scheduledExecutorService
-    implicit val ec = ee.executionContext
-
+    implicit val es = ee.executorServices
     type S = Fx.append[Fx.fx2[TimedFuture, ErrorOrOk], Fx.fx2[Console, Warnings]]
 
     Await.result(action.execSafe.flatMap(_.fold(t => exception[S, A](t), a => Eff.pure[S, A](a))).
@@ -31,8 +29,7 @@ trait ExecuteActions {
   }
 
   def executeActionFuture[A](action: Action[A], printer: String => Unit = s => ())(ee: ExecutionEnv): Future[(Error Either A, List[String])] = {
-    implicit val s = ee.scheduledExecutorService
-    implicit val ec = ee.executionContext
+    implicit val es = ee.executorServices
     type S = Fx.append[Fx.fx2[TimedFuture, ErrorOrOk], Fx.fx2[Console, Warnings]]
 
     action.execSafe.flatMap(_.fold(t => exception[S, A](t), a => Eff.pure[S, A](a))).
@@ -40,8 +37,8 @@ trait ExecuteActions {
   }
 
   def runActionFuture[A](action: Action[A], printer: String => Unit = s => ())(ee: ExecutionEnv): Future[A] = {
-    implicit val s = ee.scheduledExecutorService
     implicit val ec = ee.executionContext
+    implicit val es = ee.executorServices
 
     action.runError.runConsoleToPrinter(printer).discardWarnings.execSafe.runAsync.flatMap {
       case Left(t)               => Future.failed(t)
@@ -58,7 +55,7 @@ trait ExecuteActions {
 
   def attemptExecuteAction[A](action: Action[A], printer: String => Unit = s => ())(ee: ExecutionEnv): Throwable Either (Error Either A, List[String]) =
     try {
-      import ee._
+      implicit val es = ee.executorServices
       Await.result(action.runError.runConsoleToPrinter(printer).runWarnings.execSafe.runAsync, Duration.Inf)
     }
     catch { case NonFatal(t) => Left(t) }

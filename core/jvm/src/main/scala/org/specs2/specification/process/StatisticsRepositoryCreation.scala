@@ -4,7 +4,7 @@ package process
 
 import io._
 
-object StatisticsRepositoryStore {
+object StatisticsRepositoryCreation {
 
   def memory = StatisticsRepository(StatisticsMemoryStore())
   def file(dir: DirectoryPath) = StatisticsRepository(DirectoryStore(dir))

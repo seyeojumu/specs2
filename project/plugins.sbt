@@ -1,4 +1,4 @@
-addSbtPlugin("org.scala-js"      % "sbt-scalajs"        % "0.6.16")
+addSbtPlugin("org.scala-js"      % "sbt-scalajs"        % "0.6.18")
 addSbtPlugin("com.jsuereth"      % "sbt-pgp"            % "1.0.0")
 addSbtPlugin("com.typesafe.sbt"  % "sbt-site"           % "0.6.2")
 addSbtPlugin("com.typesafe.sbt"  % "sbt-ghpages"        % "0.5.1")

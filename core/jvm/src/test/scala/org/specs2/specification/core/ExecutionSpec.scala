@@ -22,7 +22,7 @@ class ExecutionSpec(implicit ee: ExecutionEnv) extends Specification with Action
 """
 
   def linkExecution = { env1: Env =>
-    val store = StatisticsRepository.memory
+    val store = StatisticsRepositoryCreation.memory
     val env = env1.setStatisticRepository(store)
     val stats =  Stats(specs = 2, failures = 1, examples = 1)
     store.storeStatistics(getClass.getName, stats).runOption

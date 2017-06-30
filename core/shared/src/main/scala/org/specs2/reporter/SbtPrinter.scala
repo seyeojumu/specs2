@@ -130,6 +130,7 @@ case class SbtLineLogger(loggers: Array[Logger]) extends BufferedLineLogger {
   def infoLine(msg: String) = loggers.foreach { logger =>
     logger.info(removeColors(msg, !logger.ansiCodesSupported))
   }
+
   /** failures are represented as errors in sbt */
   def failureLine(msg: String) = errorLine(msg)
 

@@ -17,6 +17,10 @@ import reflect._
 import eff.ErrorEffect._
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.control.ExecuteActions._
+import org.specs2.data.NamedTag
+
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 
 /**
  * Runner for Sbt
@@ -29,34 +33,44 @@ abstract class BaseSbtRunner(args: Array[String], remoteArgs: Array[String], loa
 
   /** create a new test task */
   def newTask(aTaskDef: TaskDef): Task =
-    new Task {
+    new sbt.testing.Task {
       lazy val env = Env(arguments = commandLineArguments)
-      implicit lazy val ee = env.executionEnv
-
-      // the specification to execute with error messages if it cannot be instantiated
-      lazy val specStructure: (Error Either Option[SpecStructure], List[String]) =
-        executeAction(createSpecStructure(taskDef, loader, env))(env.specs2ExecutionEnv)
+      implicit lazy val ec = env.specs2ExecutionContext
 
       /** @return the specification tags */
-      def tags: Array[String] =
+      def tags: Array[String] = {
+        lazy val spec = runOperation(createSpecStructure(taskDef, loader, env)).toOption.flatten
+        lazy val tags: List[NamedTag] =
+          spec.flatMap(s => runAction(s.tags)(env.specs2ExecutionEnv).toOption).getOrElse(Nil)
+
         if (commandLineArguments.commandLine.isSet("sbt.tags"))
-          specStructure._1.toOption.flatten.map(_.tagsList.flatMap(_.names).toArray).getOrElse(Array())
+          tags.flatMap(_.names).toArray
         else
           Array()
+      }
 
       def execute(handler: EventHandler, loggers: Array[Logger], continuation: Array[Task] => Unit): Unit =
-        continuation(execute(handler, loggers))
+        executeFuture(handler, loggers).onComplete(_ => continuation(Array()))
+
+      private def executeFuture(handler: EventHandler, loggers: Array[Logger]): Future[Unit] = {
+        val ee = env.specs2ExecutionEnv
+
+        executeActionFuture(createSpecStructure(taskDef, loader, env))(ee).flatMap { case (result, warnings) =>
+          processResult(handler, loggers)(result, warnings)
+          result.toOption.flatten match {
+            case Some(structure) =>
+              executeActionFuture(specificationRun(aTaskDef, structure, env, handler, loggers))(ee).map { case (rs, ws) =>
+                processResult(handler, loggers)(rs, ws)
+              }
+
+            case None =>
+              Future(())
+          }
+        }.recover { case t => loggers.foreach(_.trace(t)) }
+      }
 
       def execute(handler: EventHandler, loggers: Array[Logger]): Array[Task] = {
-        val (result, warnings) = specStructure
-        processResult(handler, loggers)(result, warnings)
-
-        result.toOption.flatten.foreach { structure =>
-          val action = specificationRun(aTaskDef, structure, env, handler, loggers)
-          val (rs, ws) = executeAction(action, consoleLogging)(env.specs2ExecutionEnv)
-          processResult(handler, loggers)(rs, ws)
-        }
-        // nothing more to execute
+        Await.result(executeFuture(handler, loggers), Duration.Inf)
         Array()
       }
 
@@ -65,15 +79,14 @@ abstract class BaseSbtRunner(args: Array[String], remoteArgs: Array[String], loa
       def taskDef = aTaskDef
 
       /** display errorrs and warnings */
-      def processResult[A](handler: EventHandler, loggers: Array[Logger])(result: Error Either A, warnings: List[String]): Unit = {
-        result.fold(
-          e => {
+      def processResult[A](handler: EventHandler, loggers: Array[Logger])(result: Error Either A, warnings: List[String]): Unit =
+        result match {
+          case Left(e) =>
             if (warnings.nonEmpty) handleRunWarnings(warnings, loggers, commandLineArguments)
             else handleRunError(e, loggers, sbtEvents(taskDef, handler), commandLineArguments)
-          },
-          _ => handleRunWarnings(warnings, loggers, commandLineArguments)
-        )
-      }
+
+          case _ => handleRunWarnings(warnings, loggers, commandLineArguments)
+        }
     }
 
   def done = ""
@@ -140,17 +153,22 @@ abstract class BaseSbtRunner(args: Array[String], remoteArgs: Array[String], loa
   /**
    * Notify sbt of errors during the run
    */
-  private def handleRunError(e: Throwable Either String, loggers: Array[Logger], events: SbtEvents, arguments: Arguments) {
+  private def handleRunError(e: Throwable Either String, loggers: Array[Logger], events: SbtEvents, arguments: Arguments): Unit = {
     val logger = SbtLineLogger(loggers)
 
     def logThrowable(t: Throwable) =
       Runner.logThrowable(t, arguments)(m => Name(logger.errorLine(m))).value
 
-    e.fold(
-      t => { events.suiteError(t); logThrowable(t) },
-      m => { events.suiteError; logger.errorLine(m) }
-    )
+    e match {
+      case Left(t) =>
+        events.suiteError(t)
+        logger.errorLine(t.getMessage)
+        logThrowable(t)
 
+      case Right(m) =>
+        events.suiteError
+        logger.errorLine(m)
+    }
     logger.close
   }
 
@@ -187,15 +205,14 @@ object sbtRun extends MasterSbtRunner(Array(), Array(), Thread.currentThread.get
   def main(arguments: Array[String]) {
     val env = Env(Arguments(arguments:_*))
     implicit def ee: ExecutionEnv = env.specs2ExecutionEnv
-
     try exit(start(arguments: _*))
     finally env.shutdown
   }
 
   def exit(action: Action[Stats])(implicit ee: ExecutionEnv): Unit = {
-    runAction(action)(ee).fold(
+    runActionFuture(action)(ee).onComplete(_.fold(
       err => System.exit(100),
-      ok  => if (ok.isSuccess) System.exit(0) else System.exit(1))
+      ok  => if (ok.isSuccess) System.exit(0) else System.exit(1)))(ee.executionContext)
   }
 
   def start(arguments: String*): Action[Stats] = {

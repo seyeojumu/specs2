@@ -7,32 +7,24 @@ import io.FileSystem
 import main.Arguments
 import reporter.LineLogger.NoLineLogger
 import specification.process._
+import reflect._
 
 object EnvDefault {
 
   def default: Env =
     Env(
-      Arguments(),
-      selectorInstance = (arguments: Arguments) => DefaultSelector,
-
-      executorInstance = (arguments: Arguments) => DefaultExecutor,
-
-      lineLogger = NoLineLogger,
-
-      statsRepository = (arguments: Arguments) => StatisticsRepositoryStore.memory,
-
-      systemLogger = consoleLogging,
-
-      random = new scala.util.Random,
-
-      fileSystem = FileSystem,
-
-      executionParameters = ExecutionParameters())
-
-
-  def inaccessibleFileSystem: FileSystem = new FileSystem {
-
-  }
+      arguments           = Arguments(),
+      systemLogger        = consoleLogging,
+      selectorInstance    = (arguments: Arguments) => DefaultSelector,
+      executorInstance    = (arguments: Arguments) => DefaultExecutor,
+      lineLogger          = NoLineLogger,
+      statsRepository     = (arguments: Arguments) => StatisticsRepositoryCreation.memory,
+      random              = new scala.util.Random,
+      fileSystem          = new FileSystem {},
+      executionParameters = ExecutionParameters(),
+      customClassLoader   = None,
+      classLoading        = new ClassLoading {}
+    )
 
   def defaultInstances(env: Env) =
     List(env.arguments.commandLine,

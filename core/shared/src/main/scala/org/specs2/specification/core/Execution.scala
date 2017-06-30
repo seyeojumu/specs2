@@ -2,8 +2,7 @@ package org.specs2
 package specification
 package core
 
-import java.util.concurrent.{ScheduledExecutorService, TimeoutException}
-
+import java.util.concurrent._
 import execute._
 import org.specs2.concurrent.ExecutionEnv
 
@@ -124,11 +123,10 @@ case class Execution(run:            Option[Env => Future[() => Result]]     = N
       case Some(r) =>
         val to = env.timeout |+| timeout
         try {
-          val s = env.scheduledExecutorService
           implicit val ec = env.executionContext
           env.setContextClassLoader()
 
-          val future = TimedFuture((s, e) => r(env).map(_()), to).runNow(s, ec)
+          val future = TimedFuture(es => r(env).map(_()), to).runNow(env.executorServices)
           setExecuting(future).copy(timeout = to).startTimer
         }
         catch { case t: Throwable => setFatal(t).stopTimer }
@@ -141,8 +139,6 @@ case class Execution(run:            Option[Env => Future[() => Result]]     = N
   /** start this execution when the other ones are finished */
   def startAfter(others: List[Execution])(env: Env): Execution = {
     val arguments = env.arguments
-    implicit val s = env.scheduledExecutorService
-    implicit val ec = env.executionContext
 
     val started: TimedFuture[Result] =
       others.map(_.executionResult).sequence.flatMap { results =>
@@ -161,11 +157,11 @@ case class Execution(run:            Option[Env => Future[() => Result]]     = N
               if (env.arguments.sequential) Skipped()
               else                          Error(FatalExecution(new Exception))
             }
-            else          r
+            else r
           }
         }
       }
-    copy(executing = Some(Right(started.runNow(s, ec))))
+    copy(executing = Some(Right(started.runNow(env.executorServices))))
   }
 
   def setErrorAsFatal: Execution =
@@ -300,10 +296,9 @@ object Execution {
   def withEnvFlatten(f: Env => Execution): Execution =
     Execution(Some { env: Env =>
       implicit val ec = env.executionContext
-      implicit val s = env.scheduledExecutorService
       Future {
         () =>
-        f(env).startExecution(env).executionResult.runNow(s, ec).map(r => () => r)
+        f(env).startExecution(env).executionResult.runNow(env.executorServices).map(r => () => r)
       }.flatMap(future => future())
     })
 
@@ -314,10 +309,6 @@ object Execution {
   /** create an execution using the Env */
   def withEnvAsync[T : AsResult](f: Env => Future[T]): Execution =
     Execution(Some((env: Env) => f(env).map(r => () => AsResult(r))(env.executionContext)))
-
-  /** create an execution using the scheduled executor service */
-  def withScheduledExecutorService[T : AsResult](f: ScheduledExecutorService => T) =
-    withEnv((env: Env) => f(env.scheduledExecutorService))
 
   /** create an execution using the execution environment */
   def withExecutionEnv[T : AsResult](f: ExecutionEnv => T) =

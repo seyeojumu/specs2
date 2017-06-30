@@ -4,7 +4,7 @@ package reporter
 import matcher.DataTable
 import control._
 import origami._
-import eff.all._
+import eff.Eff._
 import specification.core._
 import specification.process._
 import text.NotNullStrings._

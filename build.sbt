@@ -77,14 +77,19 @@ lazy val common = crossProject.in(file("common")).
   settings(moduleSettings("common") ++
     Seq(conflictWarning ~= { _.copy(failOnConflict = false) },
       libraryDependencies ++=
+        depends.scalaParser(scalaVersion.value) ++
         depends.reflect(scalaOrganization.value, scalaVersion.value) ++
           depends.paradise(scalaVersion.value) ++
-          depends.scalaParser(scalaVersion.value) ++
           depends.scalaXML(scalaVersion.value) ++
           depends.scalacheck(scalaVersion.value).map(_ % "test"),
       name := "specs2-common"
     ):_*).
-  jvmSettings(moduleJvmSettings("common"))
+  jsSettings(libraryDependencies ++=
+    depends.sbtJs(scalaJSVersion) ++
+    Seq("org.scala-lang.modules" %%% "scala-parser-combinators" % "1.0.6")).
+  jvmSettings(moduleJvmSettings("common"),
+    libraryDependencies ++= depends.scalaParser(scalaVersion.value)
+  )
 
 lazy val commonJs  = common.js.dependsOn(fpJs)
 lazy val commonJvm = common.jvm.dependsOn(fpJvm)
@@ -92,7 +97,6 @@ lazy val commonJvm = common.jvm.dependsOn(fpJvm)
 lazy val core = crossProject.in(file("core")).
   settings(Seq(
     libraryDependencies ++=
-      depends.sbtJvm(scalaJSVersion) ++
       depends.paradise(scalaVersion.value) ++
       depends.testInterface.map(_ % "optional") ++
       depends.mockito.map(_ % "test") ++

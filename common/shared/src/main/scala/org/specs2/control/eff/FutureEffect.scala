@@ -1,41 +1,35 @@
 package org.specs2.control.eff
 
-import java.util.concurrent.ScheduledExecutorService
-
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future, Promise, TimeoutException}
 import scala.util.{Failure, Success}
 import org.specs2.fp._
 import Eff._
+import org.specs2.concurrent._
 
 object FutureCreation extends FutureCreation
 
-final case class TimedFuture[A](callback: (ScheduledExecutorService, ExecutionContext) => Future[A], timeout: Option[FiniteDuration] = None) {
-  @inline def runNow(sexs: ScheduledExecutorService, exc: ExecutionContext): Future[A] = {
+final case class TimedFuture[A](callback: ExecutorServices => Future[A], timeout: Option[FiniteDuration] = None) {
+  @inline def runNow(es: ExecutorServices): Future[A] = {
     timeout.fold {
-      callback(sexs, exc)
+      callback(es)
     } { t =>
       val promise = Promise[A]
-      val timeout = new Runnable {
-        override def run(): Unit = {
-          val _ = promise.tryFailure(new TimeoutException)
-        }
-      }
-      sexs.schedule(timeout, t.length, t.unit)
-      promise.tryCompleteWith(callback(sexs, exc))
+      es.schedule( { promise.tryFailure(new TimeoutException); () }, t)
+      promise.tryCompleteWith(callback(es))
       promise.future
     }
   }
 
   def attempt: TimedFuture[Throwable Either A] =
-    TimedFuture[Throwable Either A](callback = (sexs, ec) => {
+    TimedFuture[Throwable Either A](callback = es => {
       val prom = Promise[Throwable Either A]()
-      runNow(sexs, ec).onComplete { t =>
+      runNow(es).onComplete { t =>
         prom.success(t match {
           case Failure(ex) => Left(ex)
           case Success(v) => Right(v)
         })
-      }(ec)
+      }(es.executionContext)
       prom.future
     })
 
@@ -44,13 +38,13 @@ final case class TimedFuture[A](callback: (ScheduledExecutorService, ExecutionCo
 object TimedFuture {
 
   final def ApplicativeTimedFuture: Applicative[TimedFuture] = new Applicative[TimedFuture] {
-    def point[A](x: =>A) = TimedFuture((_, _) => Future.successful(x))
+    def point[A](x: =>A) = TimedFuture(_ => Future.successful(x))
 
     def ap[A, B](fa: =>TimedFuture[A])(ff: =>TimedFuture[(A) => B]): TimedFuture[B] = {
-      val newCallback = { (sexs: ScheduledExecutorService, ec: ExecutionContext) =>
-        val ffRan = ff.runNow(sexs, ec)
-        val faRan = fa.runNow(sexs, ec)
-        faRan.flatMap(a => ffRan.map(f => f(a))(ec))(ec)
+      val newCallback = { es: ExecutorServices =>
+        val ffRan = ff.runNow(es)
+        val faRan = fa.runNow(es)
+        faRan.flatMap(a => ffRan.map(f => f(a))(es.executionContext))(es.executionContext)
       }
       TimedFuture(newCallback)
     }
@@ -58,19 +52,19 @@ object TimedFuture {
   }
 
   implicit final def MonadTimedFuture: Monad[TimedFuture] = new Monad[TimedFuture] {
-    def point[A](x: => A) = TimedFuture((_, _) => Future.successful(x))
+    def point[A](x: => A) = TimedFuture(_ => Future.successful(x))
 
     def bind[A, B](fa: TimedFuture[A])(f: A => TimedFuture[B]): TimedFuture[B] =
-      TimedFuture[B]((sexs, ec) => fa.runNow(sexs, ec).flatMap(f(_).runNow(sexs, ec))(ec))
+      TimedFuture[B](es => fa.runNow(es).flatMap(f(_).runNow(es))(es.executionContext))
 
     override def tailrecM[A, B](a: A)(f: A => TimedFuture[Either[A, B]]): TimedFuture[B] =
-      TimedFuture[B]({ (sexs, ec) =>
-        def loop(va: A): Future[B] = f(va).runNow(sexs, ec).flatMap {
+      TimedFuture[B] { es =>
+        def loop(va: A): Future[B] = f(va).runNow(es).flatMap {
           case Left(na) => loop(na)
           case Right(nb) => Future.successful(nb)
-        }(ec)
+        }(es.executionContext)
         loop(a)
-      })
+      }
 
     override def toString = "Monad[TimedFuture]"
   }
@@ -82,7 +76,7 @@ object TimedFuture {
     future(Future.failed(t))
 
   def future[A](f: =>Future[A]): TimedFuture[A] =
-    TimedFuture((_, _) => f)
+    TimedFuture(_ => f)
 }
 
 trait FutureTypes {
@@ -92,33 +86,33 @@ trait FutureTypes {
 
 trait FutureCreation extends FutureTypes {
 
-  final def fromFutureWithExecutors[R :_future, A](c: (ScheduledExecutorService, ExecutionContext) => Future[A], timeout: Option[FiniteDuration] = None): Eff[R, A] =
-    send[TimedFuture, R, A](TimedFuture(c, timeout))
+  final def fromFutureWithExecutors[R :_future, A](es: ExecutorServices => Future[A], timeout: Option[FiniteDuration] = None): Eff[R, A] =
+    send[TimedFuture, R, A](TimedFuture(es, timeout))
 
   final def futureFail[R :_future, A](t: Throwable): Eff[R, A] =
-    send[TimedFuture, R, A](TimedFuture((_, _) => Future.failed(t)))
+    send[TimedFuture, R, A](TimedFuture(_ => Future.failed(t)))
 
   final def futureFromEither[R :_future, A](e: Throwable Either A): Eff[R, A] =
     e.fold(futureFail[R, A], Eff.pure[R, A])
 
   final def futureDelay[R :_future, A](a: => A, timeout: Option[FiniteDuration] = None): Eff[R, A] =
-    send[TimedFuture, R, A](TimedFuture((_, _) => Future.successful(a), timeout))
+    send[TimedFuture, R, A](TimedFuture(_ => Future.successful(a), timeout))
 
   final def futureFork[R :_future, A](a: => A, ec: ExecutionContext, timeout: Option[FiniteDuration] = None): Eff[R, A] =
-    send[TimedFuture, R, A](TimedFuture((_, _) => Future(a)(ec), timeout))
+    send[TimedFuture, R, A](TimedFuture(_ => Future(a)(ec), timeout))
 
   final def futureDefer[R :_future, A](a: =>Future[A], timeout: Option[FiniteDuration] = None): Eff[R, A] =
-    send[TimedFuture, R, A](TimedFuture((_, _) => a, timeout))
+    send[TimedFuture, R, A](TimedFuture(_ => a, timeout))
 
 }
 
 trait FutureInterpretation extends FutureTypes {
 
-  def runAsync[R, A](e: Eff[R, A])(implicit sexs: ScheduledExecutorService, exc: ExecutionContext, m: Member.Aux[TimedFuture, R, NoFx]): Future[A] =
-    Eff.detachA(Eff.effInto[R, Fx1[TimedFuture], A](e))(TimedFuture.MonadTimedFuture, TimedFuture.ApplicativeTimedFuture).runNow(sexs, exc)
+  def runAsync[R, A](e: Eff[R, A])(implicit es: ExecutorServices, m: Member.Aux[TimedFuture, R, NoFx]): Future[A] =
+    Eff.detachA(Eff.effInto[R, Fx1[TimedFuture], A](e))(TimedFuture.MonadTimedFuture, TimedFuture.ApplicativeTimedFuture).runNow(es)
 
-  def runSequential[R, A](e: Eff[R, A])(implicit sexs: ScheduledExecutorService, exc: ExecutionContext, m: Member.Aux[TimedFuture, R, NoFx]): Future[A] =
-    Eff.detach(Eff.effInto[R, Fx1[TimedFuture], A](e)).runNow(sexs, exc)
+  def runSequential[R, A](e: Eff[R, A])(implicit es: ExecutorServices, m: Member.Aux[TimedFuture, R, NoFx]): Future[A] =
+    Eff.detach(Eff.effInto[R, Fx1[TimedFuture], A](e)).runNow(es)
 
   import interpret.of
 
@@ -129,10 +123,10 @@ trait FutureInterpretation extends FutureTypes {
       })
 
   final def memoize[A](key: AnyRef, cache: Cache, future: TimedFuture[A]): TimedFuture[A] =
-    TimedFuture { (sexs, ec) =>
+    TimedFuture { es =>
       val prom = Promise[A]()
       cache.get[A](key).fold {
-        prom.completeWith(future.runNow(sexs, ec).map { v => val _ = cache.put(key, v); v }(ec))
+        prom.completeWith(future.runNow(es).map { v => val _ = cache.put(key, v); v }(es.executionContext))
       } { v => prom.success(v) }
       prom.future
     }
