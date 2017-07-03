@@ -88,8 +88,8 @@ trait MutableFragmentBuilder extends FragmentBuilder
   }
 
   private def duplicateExecution(effectPath: EffectPath): Execution = Execution.withEnvFlatten { env =>
-    val instance = runOperation(Classes.createInstanceFromClass[MutableFragmentBuilder](getClass.asInstanceOf[Class[MutableFragmentBuilder]],
-      getClass.getClassLoader, env.defaultInstances), env.systemLogger)
+    val instance =
+      runOperation(Classes.createInstanceFromClass[MutableFragmentBuilder](getClass.asInstanceOf[Class[MutableFragmentBuilder]], env.defaultInstances), env.systemLogger)
 
       instance match {
         case Left(e) =>

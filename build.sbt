@@ -74,44 +74,37 @@ lazy val fpJvm = fp.jvm
 lazy val fpJs  = fp.js
 
 lazy val common = crossProject.in(file("common")).
-  settings(moduleSettings("common") ++
-    Seq(conflictWarning ~= { _.copy(failOnConflict = false) },
-      libraryDependencies ++=
-        depends.scalaParser(scalaVersion.value) ++
-        depends.reflect(scalaOrganization.value, scalaVersion.value) ++
-          depends.paradise(scalaVersion.value) ++
-          depends.scalaXML(scalaVersion.value) ++
-          depends.scalacheck(scalaVersion.value).map(_ % "test"),
-      name := "specs2-common"
-    ):_*).
-  jsSettings(libraryDependencies ++=
-    depends.sbtJs(scalaJSVersion) ++
-    Seq("org.scala-lang.modules" %%% "scala-parser-combinators" % "1.0.6")).
-  jvmSettings(moduleJvmSettings("common"),
-    libraryDependencies ++= depends.scalaParser(scalaVersion.value)
-  )
+  settings(
+    name := "specs2-common",
+    libraryDependencies ++=
+      Seq("org.scala-lang.modules" %%% "scala-parser-combinators" % "1.0.5") ++
+      depends.reflect(scalaOrganization.value, scalaVersion.value) ++
+      depends.paradise(scalaVersion.value) ++
+      depends.scalaXML(scalaVersion.value) ++
+      depends.scalacheck(scalaVersion.value).map(_ % "test"),
+    moduleSettings("common")).
+  jsSettings(
+    scalaJSStage in Test := FastOptStage,
+    libraryDependencies ++= depends.sbtJs(scalaJSVersion)).
+  jvmSettings(
+    libraryDependencies ++= depends.sbtJvm(scalaJSVersion),
+    moduleJvmSettings("common"))
 
 lazy val commonJs  = common.js.dependsOn(fpJs)
 lazy val commonJvm = common.jvm.dependsOn(fpJvm)
 
 lazy val core = crossProject.in(file("core")).
-  settings(Seq(
+  settings(
+    name := "specs2-core",
     libraryDependencies ++=
       depends.paradise(scalaVersion.value) ++
       depends.testInterface.map(_ % "optional") ++
       depends.mockito.map(_ % "test") ++
-      depends.junit.map(_ % "test")) ++
-    moduleSettings("core") ++
-    Seq(name := "specs2-core"):_*).
-  jsSettings(
-    libraryDependencies ++= depends.sbtJs(scalaJSVersion),
-    scalaJSStage in Test := FastOptStage
-  ).
-  jvmSettings(
-    moduleJvmSettings("core") ++
-      Seq(libraryDependencies ++= depends.sbtJvm(scalaJSVersion)))
+      depends.junit.map(_ % "test"),
+    moduleSettings("core")).
+  jvmSettings(moduleJvmSettings("core"))
 
-lazy val coreJs  = core.js.dependsOn(matcherJs, commonJs % "test->test")
+lazy val coreJs  = core.js.dependsOn(matcherJs, commonJs, commonJs % "test->test")
 lazy val coreJvm = core.jvm.dependsOn(matcherJvm, commonJvm % "test->test")
 
 lazy val examples = crossProject.in(file("examples")).
