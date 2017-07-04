@@ -41,18 +41,25 @@ object depends {
     else
       Seq()
 
-  lazy val mockito       = Seq("org.mockito"  %  "mockito-core"  % "2.7.22")
-  lazy val junit         = Seq("junit"        %  "junit"         % "4.12")
-  lazy val hamcrest      = Seq("org.hamcrest" %  "hamcrest-core" % "1.3")
+  lazy val mockito       = Seq("org.mockito"  % "mockito-core"  % "2.7.22")
+  lazy val junit         = Seq("junit"        % "junit"         % "4.12")
+  lazy val hamcrest      = Seq("org.hamcrest" % "hamcrest-core" % "1.3")
 
   def shapeless(scalaVersion: String) =
     Seq("com.chuusai" %% "shapeless" % "2.3.2")
 
   lazy val pegdown = Seq("org.pegdown" % "pegdown" % "1.6.0")
 
-  lazy val testInterface = Seq("org.scala-sbt" % "test-interface" % "1.0")
-
   lazy val tagsoup = "org.ccil.cowan.tagsoup" % "tagsoup" % "1.2"
+
+  def sbtJvm(scalaJsVersion: String) = Seq(
+    "org.scala-sbt" % "test-interface" % "1.0",
+    "org.scala-js" %% "scalajs-stubs" % scalaJsVersion % "provided"
+  )
+
+  def sbtJs(scalaJsVersion: String) = Seq(
+    "org.scala-js" %% "scalajs-test-interface" % scalaJsVersion
+  )
 
   def paradise(scalaVersion: String) =
     if (scalaMinorVersionAtLeast(scalaVersion, 11))

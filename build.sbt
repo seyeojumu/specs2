@@ -83,10 +83,10 @@ lazy val common = crossProject.in(file("common")).
       depends.scalaXML(scalaVersion.value) ++
       depends.scalacheck(scalaVersion.value).map(_ % "test"),
     moduleSettings("common")).
-  jsSettings(scalaJSStage in Test := FastOptStage).
-  jvmSettings(
-    libraryDependencies += "org.scala-js" %% "scalajs-stubs" % scalaJSVersion,
-    moduleJvmSettings("common"))
+  jsSettings(
+    libraryDependencies += "org.scala-js" %% "scalajs-test-interface" % scalaJSVersion,
+    scalaJSStage in Test := FastOptStage).
+  jvmSettings(moduleJvmSettings("common"))
 
 lazy val commonJs  = common.js.dependsOn(fpJs)
 lazy val commonJvm = common.jvm.dependsOn(fpJvm)
@@ -95,13 +95,21 @@ lazy val core = crossProject.in(file("core")).
   settings(
     name := "specs2-core",
     libraryDependencies ++=
-      Seq("org.scala-js" %%% "scalajs-test-interface" % scalaJSVersion) ++
       depends.paradise(scalaVersion.value) ++
       depends.mockito.map(_ % "test") ++
       depends.junit.map(_ % "test"),
     moduleSettings("core")).
+  jsSettings(
+    libraryDependencies ++=
+      Seq(
+        "org.scala-js" %% "scalajs-test-interface" % scalaJSVersion
+      ),
+    scalaJSStage in Test := FastOptStage).
   jvmSettings(
-    libraryDependencies += "org.scala-js" %% "scalajs-stubs" % scalaJSVersion,
+    libraryDependencies ++=
+      Seq(
+        "org.scala-sbt" % "test-interface" % "1.0",
+        "org.scala-js" %% "scalajs-stubs" % scalaJSVersion % "provided"),
     moduleJvmSettings("core"))
 
 lazy val coreJs  = core.js.dependsOn(matcherJs, commonJs, commonJs % "test->test")
