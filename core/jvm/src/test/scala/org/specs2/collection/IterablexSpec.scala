@@ -21,17 +21,16 @@ class IterablexSpec extends Specification with IterableData with ScalaCheckResul
       <a> <b/> <c/> </a>.child.sameElementsAs(<a> <c/> <b/> </a>.child)
     }
     "for 2 iterables created with same elements in a different order" >> {
-      implicit val iterables = sameIterables
-      Prop.forAll { t: (Iterable[Any], Iterable[Any]) => val (i1, i2) = t 
-        i1.sameElementsAs(i2)
+      implicit val iterables = arbitraryIterable
+      Prop.forAll { i1: Iterable[Any] =>
+        i1.sameElementsAs(i1.scramble)
       }
     }
     "for 2 iterables created with same elements in a different order, even with different types like Stream and List" >> {
       implicit val iterables = sameIterablesOfDifferentTypes
-      val p = Prop.forAll { t: (Iterable[Any], Iterable[Any]) => val (i1, i2) = t
+      Prop.forAll { t: (Iterable[Any], Iterable[Any]) => val (i1, i2) = t
         i1.sameElementsAs(i2)
       }
-      Test.check(Test.Parameters.default, p).passed
     }
   }
 
@@ -59,14 +58,19 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Gen._
 
 trait IterableData {
-  val sameIterables: Arbitrary[(Iterable[Any], Iterable[Any])] = Arbitrary {
+
+  def arbitraryIterable: Arbitrary[Iterable[Any]] = Arbitrary {
     for {
-      i0 <- listOf(oneOf(1, 2, 3))
-      i1 <- listOf(oneOf(1, 4, 5, i0))
-      i2 <- listOf(oneOf(i0, i1, 2, 3))
-    } yield (i2, i2.scramble)
-  }                           
+      i0 <- listOfN(3, oneOf(1, 2, 3))
+      i1 <- listOfN(3, oneOf[Any](1, 4, 5, i0))
+      i2 <- listOfN(3, oneOf[Any](i0, i1, 2, 3))
+    } yield i2
+  }
+
   val sameIterablesOfDifferentTypes: Arbitrary[(Iterable[Any], Iterable[Any])] = Arbitrary {
-    listOf(oneOf(1, 2, 3, listOf(oneOf(1, 2, 3)))).map(i1 => (i1.toStream, i1.scramble.toList))
+    for {
+      i0 <- listOfN(3, oneOf(1, 2, 3))
+      i1 <- listOfN(3, oneOf(1, 2, 3, i0))
+    } yield (i1.toStream, i1.scramble)
   }
 }

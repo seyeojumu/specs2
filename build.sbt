@@ -60,7 +60,9 @@ lazy val analysis = crossProject.in(file("analysis")).
     libraryDependencies ++= depends.classycle ++ depends.compiler(scalaOrganization.value, scalaVersion.value)) ++
     moduleSettings("analysis") ++
     Seq(name := "specs2-analysis"):_*).
-  jvmSettings(moduleJvmSettings("analysis"))
+  jvmSettings(
+    depends.jvmTest,
+    moduleJvmSettings("analysis"))
 
 lazy val analysisJs  = analysis.js.dependsOn(commonJs % "test->test", coreJs, matcherJs, scalacheckJs % "test")
 lazy val analysisJvm = analysis.jvm.dependsOn(commonJvm % "test->test", coreJvm, matcherJvm, scalacheckJvm % "test")
@@ -83,9 +85,7 @@ lazy val common = crossProject.in(file("common")).
       depends.scalaXML(scalaVersion.value) ++
       depends.scalacheck(scalaVersion.value).map(_ % "test"),
     moduleSettings("common")).
-  jsSettings(
-    libraryDependencies += "org.scala-js" %% "scalajs-test-interface" % scalaJSVersion,
-    scalaJSStage in Test := FastOptStage).
+  jsSettings(depends.jsTest).
   jvmSettings(moduleJvmSettings("common"))
 
 lazy val commonJs  = common.js.dependsOn(fpJs)
@@ -99,17 +99,9 @@ lazy val core = crossProject.in(file("core")).
       depends.mockito.map(_ % "test") ++
       depends.junit.map(_ % "test"),
     moduleSettings("core")).
-  jsSettings(
-    libraryDependencies ++=
-      Seq(
-        "org.scala-js" %% "scalajs-test-interface" % scalaJSVersion
-      ),
-    scalaJSStage in Test := FastOptStage).
+  jsSettings(depends.jsTest).
   jvmSettings(
-    libraryDependencies ++=
-      Seq(
-        "org.scala-sbt" % "test-interface" % "1.0",
-        "org.scala-js" %% "scalajs-stubs" % scalaJSVersion % "provided"),
+    depends.jvmTest,
     moduleJvmSettings("core"))
 
 lazy val coreJs  = core.js.dependsOn(matcherJs, commonJs, commonJs % "test->test")
@@ -118,7 +110,7 @@ lazy val coreJvm = core.jvm.dependsOn(matcherJvm, commonJvm % "test->test")
 lazy val examples = crossProject.in(file("examples")).
   settings(moduleSettings("examples") ++
     Seq(name := "specs2-examples"):_*).
-  jvmSettings(moduleJvmSettings("examples"))
+  jvmSettings(depends.jvmTest, moduleJvmSettings("examples"))
 
 lazy val examplesJs  = examples.js.dependsOn(commonJs, matcherJs, coreJs, matcherExtraJvm, analysisJs, formJs, htmlJs, markdownJs, gwtJs, junitJs, scalacheckJs, mockJs)
 lazy val examplesJvm = examples.jvm.dependsOn(commonJvm, matcherJvm, coreJvm, matcherExtraJvm, analysisJvm, formJvm, htmlJvm, markdownJvm, gwtJvm, junitJvm, scalacheckJvm, mockJvm)
@@ -126,7 +118,7 @@ lazy val examplesJvm = examples.jvm.dependsOn(commonJvm, matcherJvm, coreJvm, ma
 lazy val form = crossProject.in(file("form")).
   settings(moduleSettings("form") ++
     Seq(name := "specs2-form"):_*).
-  jvmSettings(moduleJvmSettings("form"))
+  jvmSettings(depends.jvmTest, moduleJvmSettings("form"))
 
 lazy val formJs = form.js.dependsOn(coreJs, markdownJs, matcherExtraJs, scalacheckJs % "test->test")
 lazy val formJvm = form.jvm.dependsOn(coreJvm, markdownJvm, matcherExtraJvm, scalacheckJvm % "test->test")
@@ -141,7 +133,7 @@ lazy val gwt = crossProject.in(file("gwt")).
     libraryDependencies ++= depends.shapeless(scalaVersion.value)) ++
     moduleSettings("gwt") ++
     Seq(name := "specs2-gwt"):_*).
-  jvmSettings(moduleJvmSettings("gwt"))
+  jvmSettings(depends.jvmTest, moduleJvmSettings("gwt"))
 
 lazy val gwtJs = gwt.js.dependsOn(coreJs, matcherExtraJs, scalacheckJs)
 lazy val gwtJvm = gwt.jvm.dependsOn(coreJvm, matcherExtraJvm, scalacheckJvm)
@@ -151,7 +143,7 @@ lazy val html = crossProject.in(file("html")).
     Seq(libraryDependencies += depends.tagsoup) ++
       moduleSettings("html") ++
       Seq(name := "specs2-html"):_*).
-  jvmSettings(moduleJvmSettings("html"))
+  jvmSettings(depends.jvmTest, moduleJvmSettings("html"))
 
 lazy val htmlJs = html.js.dependsOn(formJs, mockJs % "test", matcherExtraJs % "test", scalacheckJs % "test")
 lazy val htmlJvm = html.jvm.dependsOn(formJvm, mockJvm % "test", matcherExtraJvm % "test", scalacheckJvm % "test")
@@ -161,7 +153,7 @@ lazy val junit = crossProject.in(file("junit")).
     libraryDependencies ++= depends.junit ++ depends.mockito.map(_ % "test")) ++
     moduleSettings("junit") ++
     Seq(name := "specs2-junit"):_*).
-  jvmSettings(moduleJvmSettings("junit"))
+  jvmSettings(depends.jvmTest, moduleJvmSettings("junit"))
 
 lazy val junitJs = junit.js.dependsOn(coreJs, matcherExtraJs % "test", mockJs % "test")
 lazy val junitJvm = junit.jvm.dependsOn(coreJvm, matcherExtraJvm % "test", mockJvm % "test")
@@ -171,7 +163,7 @@ lazy val markdown = crossProject.in(file("markdown")).
     libraryDependencies ++= depends.pegdown) ++
     moduleSettings("markdown") ++
     Seq(name := "specs2-markdown"):_*).
-  jvmSettings(moduleJvmSettings("markdown"))
+  jvmSettings(depends.jvmTest, moduleJvmSettings("markdown"))
 
 lazy val markdownJs = markdown.js.dependsOn(commonJs, coreJs % "compile->test")
 lazy val markdownJvm = markdown.jvm.dependsOn(commonJvm, coreJvm % "compile->test")
@@ -189,7 +181,7 @@ lazy val matcherExtra = crossProject.in(file("matcher-extra")).
     name := "specs2-matcher-extra",
     libraryDependencies ++= depends.paradise(scalaVersion.value)
   ):_*).
-  jvmSettings(moduleJvmSettings("matcher-extra"))
+  jvmSettings(depends.jvmTest, moduleJvmSettings("matcher-extra"))
 
 lazy val matcherExtraJs  = matcherExtra.js.dependsOn(analysisJs, matcherJs, coreJs % "test->test")
 lazy val matcherExtraJvm = matcherExtra.jvm.dependsOn(analysisJvm, matcherJvm, coreJvm % "test->test")
@@ -208,7 +200,7 @@ lazy val shapeless = crossProject.in(file("shapeless")).
         depends.paradise(scalaVersion.value) ++
           depends.shapeless(scalaVersion.value)
     ):_*).
-  jvmSettings(moduleJvmSettings("shapeless"))
+  jvmSettings(depends.jvmTest, moduleJvmSettings("shapeless"))
 
 lazy val shapelessJs = shapeless.js.dependsOn(matcherJs)
 lazy val shapelessJvm = shapeless.jvm.dependsOn(matcherJvm)
@@ -219,7 +211,7 @@ lazy val scalaz = crossProject.in(file("scalaz")).
       depends.scalaz(scalazVersion.value) ++
         depends.scalazConcurrent(scalazVersion.value)) ++
     Seq(name := "specs2-scalaz"):_*).
-  jvmSettings(moduleJvmSettings("scalaz"))
+  jvmSettings(depends.jvmTest, moduleJvmSettings("scalaz"))
 
 lazy val scalazJs = scalaz.js.dependsOn(matcherJs, coreJs % "test->test")
 lazy val scalazJvm = scalaz.jvm.dependsOn(matcherJvm, coreJvm % "test->test")
@@ -231,7 +223,7 @@ lazy val mock = crossProject.in(file("mock")).
         depends.mockito) ++
     moduleSettings("mock") ++
     Seq(name := "specs2-mock"):_*).
-  jvmSettings(moduleJvmSettings("mock"))
+  jvmSettings(depends.jvmTest, moduleJvmSettings("mock"))
 
 lazy val mockJs = mock.js.dependsOn(coreJs)
 lazy val mockJvm = mock.jvm.dependsOn(coreJvm)
@@ -241,7 +233,7 @@ lazy val scalacheck = crossProject.in(file("scalacheck")).
     libraryDependencies ++= depends.scalacheck(scalaVersion.value)) ++
     moduleSettings("scalacheck") ++
     Seq(name := "specs2-scalacheck"):_*).
-  jvmSettings(moduleJvmSettings("scalacheck"))
+  jvmSettings(depends.jvmTest, moduleJvmSettings("scalacheck"))
 
 lazy val scalacheckJs  = scalacheck.js.dependsOn(coreJs)
 lazy val scalacheckJvm = scalacheck.jvm.dependsOn(coreJvm)
@@ -249,11 +241,16 @@ lazy val scalacheckJvm = scalacheck.jvm.dependsOn(coreJvm)
 lazy val tests = Project(id = "tests", base = file("tests"),
   settings = moduleSettings("tests") ++
     Seq(name := "specs2-tests") ++
-    Seq(libraryDependencies ++= depends.scalaParallelCollections(scalaVersion.value))
+    Seq(libraryDependencies ++= depends.scalaParallelCollections(scalaVersion.value)) ++
+    depends.jvmTest
 ).dependsOn(
-  coreJvm % "compile->compile;test->test", shapelessJvm % "compile->compile;test->test",
-  junitJvm % "test->test", examplesJvm % "test->test",
-  matcherExtraJvm, htmlJvm, scalazJvm)
+  coreJvm      % "compile->compile;test->test",
+  shapelessJvm % "compile->compile;test->test",
+  junitJvm     % "test->test",
+  examplesJvm  % "test->test",
+  matcherExtraJvm,
+  htmlJvm,
+  scalazJvm)
 
 lazy val specs2ShellPrompt = shellPrompt in ThisBuild := { state =>
   val name = Project.extract(state).currentRef.project

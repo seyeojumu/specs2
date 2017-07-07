@@ -3,6 +3,7 @@ package reporter
 
 import specification.core.Env
 import control._
+import ExecuteActions._
 import form._
 import main._
 import org.specs2.concurrent.ExecutionEnv

@@ -6,6 +6,7 @@ import specification.core._
 import scala.xml.NodeSeq
 import matcher._
 import control._
+import ExecuteActions._
 
 class JUnitXmlPrinterSpec extends Specification with XmlMatchers { def is = s2"""
 

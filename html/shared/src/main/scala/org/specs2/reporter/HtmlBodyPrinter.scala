@@ -12,6 +12,7 @@ import scala.xml.NodeSeq
 import matcher._
 import form._
 import control._
+import ExecuteActions._
 import org.specs2.concurrent.ExecutionEnv
 import origami._
 import org.specs2.time.SimpleTimer

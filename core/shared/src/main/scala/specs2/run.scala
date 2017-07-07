@@ -15,10 +15,9 @@ object run extends ClassRunner {
    * Run one or more specifications with `specs2.run(spec1, spec2)` from a terminal
    */
   def apply(specifications: SpecificationStructure*)(implicit arguments: Arguments = Arguments()) = {
-    val env = Env(arguments = arguments,
-                  lineLogger = consoleLogger)
+    val env = Env(arguments = arguments, lineLogger = consoleLogger)
 
-    try     Runner.execute(specifications.toList.map(report(env)).sequence.map(_.foldMap(identity _)), arguments, exit = false)(env)
+    try     Runner.execute(specifications.toList.traverse(report(env)).map(_.suml), arguments, exit = false)(env)
     finally env.shutdown
   }
 

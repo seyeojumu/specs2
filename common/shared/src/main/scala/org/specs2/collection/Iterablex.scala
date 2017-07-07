@@ -60,14 +60,14 @@ trait Iterablex {
       val itb = that.iterator.toList
       (ita, itb) match {
         case (Nil, Nil) => true
-        case (a: GenIterable[_], b: GenIterable[_]) => {
-           (a.headOption.isDefined && b.headOption.isDefined) && {
+        case (a: GenIterable[_], b: GenIterable[_]) =>
+           (a.nonEmpty && b.nonEmpty) && {
             val (x, y, resta, restb) = (a.head, b.head, a.drop(1), b.drop(1))
             matchTwo(x, y) && resta.sameElementsAs(restb, f) ||
             resta.exists(matchTwo(_, y)) && restb.exists(matchTwo(x, _)) &&
               resta.removeFirst(matchTwo(_, y)).sameElementsAs(restb.removeFirst(matchTwo(x, _)), f)
           }
-        }
+
         case _ => ita == itb
       }
     }

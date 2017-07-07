@@ -6,6 +6,7 @@ import matcher.OperationMatchers._
 import org.specs2.html._
 import Indexing._
 import control._
+import ExecuteActions._
 import org.specs2.concurrent.ExecutionEnv
 
 class IndexingSpec(implicit ee: ExecutionEnv) extends Specification { def is = s2"""

@@ -7,7 +7,6 @@ import org.specs2.matcher.XmlMatchers
 import org.specs2.specification.Forms
 import specification.process.Level
 import specification.core.Fragment
-
 import scala.xml.NodeSeq
 
 object HtmlBodyPrinterSpec extends Specification with Forms with XmlMatchers { def is = s2"""
@@ -27,5 +26,5 @@ object HtmlBodyPrinterSpec extends Specification with Forms with XmlMatchers { d
   }
 
   def print(f: Fragment): NodeSeq =
-    HtmlBodyPrinter.printFragment(Arguments(), Level.Root, DirectoryPath.Root, pandoc = true)(f)
+    HtmlBodyPrinter.printFragment(f, success, Arguments(), Level.Root, DirectoryPath.Root, pandoc = true)
 }

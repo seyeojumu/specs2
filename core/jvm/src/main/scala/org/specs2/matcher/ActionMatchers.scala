@@ -40,3 +40,5 @@ trait ActionMatchers extends ValueChecks {
     )
 
 }
+
+object ActionMatchers extends ActionMatchers

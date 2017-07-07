@@ -6,6 +6,7 @@ import org.junit.runner.notification._
 import main.Arguments
 import specification.core.Env
 import control._
+import ExecuteActions._
 import org.specs2.concurrent.ExecutionEnv
 
 class JUnitRunnerSpec(ee: ExecutionEnv) extends Specification { def is = s2"""

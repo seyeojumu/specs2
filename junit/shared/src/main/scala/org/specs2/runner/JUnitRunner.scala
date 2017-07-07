@@ -11,6 +11,7 @@ import specification.core._
 import control._
 import org.specs2.fp.syntax._
 import org.specs2.concurrent.ExecutionEnv
+import ExecuteActions._
 
 /**
  * Runner for specs2 specifications

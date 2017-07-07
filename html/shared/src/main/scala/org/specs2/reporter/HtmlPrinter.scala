@@ -165,13 +165,17 @@ trait HtmlPrinter extends Printer {
            DirectoryPath("templates")).
            map(copySpecResourcesDir(env, "org" / "specs2" / "reporter", options.outDir, classOf[HtmlPrinter].getClassLoader))
         .sequence
-        .whenFailed((e: Error) => warnAndFail("Cannot copy resources to "+options.outDir.path+"\n"+e.fullMessage, RunAborted))
+        .whenFailed { e: Error =>
+          val message = "Cannot copy resources to "+options.outDir.path+"\n"+e.fullMessage
+          warnAndFail(message, RunAborted + message)
+        }
     }
 
   def copySpecResourcesDir(env: Env, base: DirectoryPath, outputDir: DirectoryPath, loader: ClassLoader)(src: DirectoryPath): Operation[Unit] = {
     Option(loader.getResource((base / src).path)) match {
       case None =>
-        warnAndFail(s"no resource found for url ${(base / src).path}", RunAborted)
+        val message = s"no resource found for path ${(base / src).path}"
+        warnAndFail(message, message)
 
       case Some(url) =>
         val fs = env.fileSystem

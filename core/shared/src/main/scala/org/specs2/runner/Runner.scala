@@ -12,8 +12,7 @@ import org.specs2.fp.syntax._
 import main.Arguments
 import reflect.Classes
 import reporter._, Printer._
-import ExecuteActions._
-import scala.util.{Success, Failure}
+import org.specs2.control.ExecuteActions._
 
 /**
  * reusable actions for Runners
@@ -25,13 +24,12 @@ object Runner {
    */
   def execute(action: Action[Stats], arguments: Arguments, exit: Boolean)(env: Env): Unit = {
     val logging = (s: String) => Name(consoleLogging(s))
-    implicit val ec = env.specs2ExecutionEnv.executionContext
 
-    executeActionFuture(action, consoleLogging)(env.specs2ExecutionEnv).onComplete {
-      case Failure(t) =>
-        logThrowable(t, arguments)(logging)
+    attemptExecuteAction(action, consoleLogging)(env.specs2ExecutionEnv) match {
+      case Left(t) =>
+        logThrowable(t, arguments)(logging).value
 
-      case Success((result, warnings))=>
+      case Right((result, warnings))=>
         result.fold(
           error => error.fold(
             t => logUserWarnings(warnings)(logging) >> logThrowable(t, arguments)(logging),

@@ -88,10 +88,11 @@ class TerminationMatcher[-T](retries: Int, sleep: Duration, whenAction: Option[(
   private val cancelled = new AtomicBoolean(false)
 
   private def createFuture[A](a: =>A)(implicit ee: ExecutionEnv): Future[A] = {
-    import ee._
-    val future = Future(a)
-    future.onSuccess { case _ => terminated.set(true) }
-    future.onFailure { case _ => cancelled.set(true) }
+    val future = Future(a)(ee.executionContext)
+    future.onComplete {
+      case util.Success(_) => terminated.set(true)
+      case util.Failure(_) => terminated.set(true)
+    }(ee.executionContext)
     future
   }
 

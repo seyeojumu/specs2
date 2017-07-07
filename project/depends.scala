@@ -17,6 +17,15 @@ object depends {
   def scalazConcurrent(scalazVersion: String) =
     Seq("org.scalaz" %% "scalaz-concurrent").map(_ % scalazVersion)
 
+  def jvmTest =
+    libraryDependencies ++= Seq(
+      "org.scala-sbt" % "test-interface" % "1.0",
+      "org.scala-js" %% "scalajs-stubs" % scalaJSVersion % "provided")
+
+  def jsTest =
+    Seq(libraryDependencies ++= Seq("org.scala-js" %% "scalajs-test-interface" % scalaJSVersion),
+        scalaJSStage in Test := FastOptStage)
+
   def scalaParser(scalaVersion: String) =
     if (scalaMinorVersionAtLeast(scalaVersion, 11))
       Seq("org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.6")

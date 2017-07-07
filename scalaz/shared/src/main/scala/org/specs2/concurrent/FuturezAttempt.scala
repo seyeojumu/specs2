@@ -2,7 +2,9 @@ package org.specs2
 package concurrent
 
 import scala.concurrent.duration._
-import scalaz._, Scalaz._
+import scalaz._
+import Scalaz._
+import scala.concurrent.TimeoutException
 import scalaz.concurrent._
 
 /**
@@ -25,7 +27,7 @@ trait FuturezAttempt {
       val appliedTimeout = timeout * tf.toLong
 
       def attemptFuture(remainingRetries: Int, totalDuration: FiniteDuration): TimeoutFailure \/ T = {
-        f.timed(appliedTimeout.toMillis).run.fold({
+        f.timed(appliedTimeout).run.fold({
           case e if e.getClass == classOf[TimeoutException] =>
             if (remainingRetries <= 0) TimeoutFailure(appliedTimeout, totalDuration, tf).left
             else                       attemptFuture(remainingRetries - 1, totalDuration + appliedTimeout)

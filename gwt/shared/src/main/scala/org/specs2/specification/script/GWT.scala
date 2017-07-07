@@ -14,6 +14,7 @@ import org.specs2.fp.syntax._
 import org.specs2.collection.Listx._
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.control.Action
+import org.specs2.control.ExecuteActions._
 
 /**
  * The GWT trait can be used to associate a piece of text to Given/When/Then steps according to the [BDD](http://en.wikipedia.org/wiki/Behavior-driven_development)
