@@ -93,12 +93,13 @@ lazy val commonJvm = common.jvm.dependsOn(fpJvm)
 
 lazy val core = crossProject.in(file("core")).
   settings(
+    moduleSettings("core"),
     name := "specs2-core",
     libraryDependencies ++=
       depends.paradise(scalaVersion.value) ++
       depends.mockito.map(_ % "test") ++
-      depends.junit.map(_ % "test"),
-    moduleSettings("core")).
+      depends.junit.map(_ % "test")
+    ).
   jsSettings(depends.jsTest).
   jvmSettings(
     depends.jvmTest,

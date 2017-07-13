@@ -9,11 +9,12 @@ import scala.concurrent.ExecutionContext
 case class ExecutionEnv(executorServices: ExecutorServices,
                         timeFactor: Int) {
 
-  def shutdown(): Unit =
-    executorServices.shutdown.value
+  def shutdown(): Unit = ()
 
   lazy val executionContext = executorServices.executionContext
   lazy val scheduler = executorServices.scheduler
+
+  implicit lazy val ec = executorServices.executionContext
 }
 
 object ExecutionEnv {
@@ -21,7 +22,7 @@ object ExecutionEnv {
   /** create an ExecutionEnv from an execution context only */
   def fromExecutionContext(ec: =>ExecutionContext): ExecutionEnv =
     ExecutionEnv(
-      ExecutorServicesCreation.fromExecutionContext(ec),
+      ExecutorServices.fromExecutionContext(ec),
       timeFactor = 1)
 
   def create(arguments: Arguments, systemLogger: Logger, threadFactoryName: String): ExecutionEnv =

@@ -12,8 +12,15 @@ case class ExecutionEnv(executorServices: ExecutorServices,
   def shutdown(): Unit =
     executorServices.shutdown.value
 
-  lazy val executionContext = executorServices.executionContext
-  lazy val scheduler = executorServices.scheduler
+  lazy val executionContext         = executorServices.executionContext
+  lazy val executorService          = executorServices.executorService
+  lazy val scheduledExecutorService = executorServices.scheduledExecutorService
+  lazy val scheduler                = executorServices.scheduler
+
+  implicit lazy val es  = executorService
+  implicit lazy val ses = scheduledExecutorService
+  implicit lazy val ec  = executionContext
+
 }
 
 object ExecutionEnv {
@@ -21,11 +28,13 @@ object ExecutionEnv {
   /** create an ExecutionEnv from an execution context only */
   def fromExecutionContext(ec: =>ExecutionContext): ExecutionEnv =
     ExecutionEnv(
-      ExecutorServicesCreation.fromExecutionContext(ec),
+      ExecutorServices.fromExecutionContext(ec),
       timeFactor = 1)
 
   def create(arguments: Arguments, systemLogger: Logger, threadFactoryName: String): ExecutionEnv =
-    fromGlobalExecutionContext
+    ExecutionEnv(
+      ExecutorServices.create(arguments, systemLogger, threadFactoryName),
+      timeFactor = arguments.execute.timeFactor)
 
   /** create an ExecutionEnv from Scala global execution context */
   def fromGlobalExecutionContext: ExecutionEnv =
